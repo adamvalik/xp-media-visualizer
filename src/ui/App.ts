@@ -212,6 +212,9 @@ export class App {
       case 'toggle-taskbar':
         this.settings.showTaskbar = !this.settings.showTaskbar;
         return this.applyLayout();
+      case 'toggle-fs-track':
+        this.settings.fullscreenTrack = !this.settings.fullscreenTrack;
+        return this.applyLayout();
       case 'about':
         return this.showAbout();
       case 'shortcuts':
@@ -479,7 +482,8 @@ export class App {
     this.save();
   }
 
-  private showTrackToast(title: string, subtitle: string, imageUrl = '') {
+  /** Updates the song overlay; `reveal` fades it in briefly (it stays pinned in full screen if enabled). */
+  private showTrackToast(title: string, subtitle: string, imageUrl = '', reveal = true) {
     const toast = $('#track-toast');
     const text = document.createElement('div');
     text.append(document.createTextNode(title));
@@ -496,6 +500,7 @@ export class App {
       toast.append(img);
     }
     toast.append(text);
+    if (!reveal) return;
     toast.classList.add('show');
     window.clearTimeout(this.trackToastTimer);
     this.trackToastTimer = window.setTimeout(() => toast.classList.remove('show'), 4500);
@@ -614,6 +619,9 @@ export class App {
     win.classList.toggle('hide-taskbar', !this.settings.showTaskbar);
     this.checkMenuItem('playlist', this.settings.showPlaylist);
     this.checkMenuItem('taskbar', this.settings.showTaskbar);
+    this.stage.classList.toggle('pin-track', this.settings.fullscreenTrack);
+    this.checkMenuItem('fs-track', this.settings.fullscreenTrack);
+    $<HTMLInputElement>('#fs-track').checked = this.settings.fullscreenTrack;
     this.save();
   }
 
@@ -724,6 +732,9 @@ export class App {
           break;
         case 'm':
           this.engine.muted = !this.engine.muted;
+          break;
+        case 'i':
+          this.run('toggle-fs-track');
           break;
         case 'ArrowUp':
           e.preventDefault();
@@ -879,6 +890,10 @@ export class App {
       void sp.connect();
     });
     $('#spotify-disconnect').addEventListener('click', () => sp.disconnect());
+    $<HTMLInputElement>('#fs-track').addEventListener('change', (e) => {
+      this.settings.fullscreenTrack = (e.target as HTMLInputElement).checked;
+      this.applyLayout();
+    });
     tint.addEventListener('change', () => {
       this.settings.albumTint = tint.checked;
       this.save();
@@ -924,6 +939,9 @@ export class App {
     if (live) {
       this.lastToastLabel = this.engine.label;
       this.showTrackToast(live.title, live.artists, live.imageUrl);
+    } else if (this.engine.kind) {
+      // Song ended or paused: keep the pinned full-screen overlay truthful without flashing it.
+      this.showTrackToast(this.engine.label, SOURCE_NAMES[this.engine.kind], '', false);
     }
     this.albumRgb = null;
     this.applyTint();
@@ -963,6 +981,7 @@ export class App {
       ['R', 'Shuffle visualizations (Alchemy)'],
       ['F or double-click', 'Full screen'],
       ['M', 'Mute'],
+      ['I', 'Show the song title in full screen'],
       ['Up / Down', 'Volume (files and demo)'],
       ['Ctrl+O', 'Open audio files'],
     ];

@@ -1909,3 +1909,27 @@ dialog.modal::backdrop {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/* Pinned song title in full screen (View > Show Song in Full Screen). */
+.stage:fullscreen .track-toast,
+.stage.pseudo-fullscreen .track-toast {
+  left: 32px;
+  bottom: 32px;
+  max-width: calc(50% - 220px);
+  min-width: 220px;
+}
+
+.stage.pin-track:fullscreen .track-toast:not(:empty),
+.stage.pin-track.pseudo-fullscreen .track-toast:not(:empty) {
+  opacity: 1;
+}
+
+@media (max-width: 760px) {
+  .stage:fullscreen .track-toast,
+  .stage.pseudo-fullscreen .track-toast {
+    left: 20px;
+    bottom: 100px;
+    max-width: calc(100% - 40px);
+    min-width: 0;
+  }
+}

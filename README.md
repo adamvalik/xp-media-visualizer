@@ -76,6 +76,7 @@ dashboard.
 | R | Shuffle visualizations (Alchemy) |
 | F or double-click | Full screen |
 | M | Mute |
+| I | Keep the song title visible in full screen (also *View > Show Song in Full Screen*) |
 | Up / Down | Volume (files and demo) |
 | Ctrl+O | Open audio files (or drag them onto the window) |
 

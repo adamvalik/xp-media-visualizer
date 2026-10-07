@@ -82,6 +82,7 @@
                   <button data-cmd="toggle-playlist" data-check="playlist">Show Playlist</button>
                   <hr />
                   <button data-cmd="fullscreen">Full Screen<span class="kbd">F</span></button>
+                  <button data-cmd="toggle-fs-track" data-check="fs-track">Show Song in Full Screen<span class="kbd">I</span></button>
                 </div>
               </div>
               <div class="menu">
@@ -254,6 +255,10 @@
                     <label class="field">
                       <span>Album color tint</span>
                       <span><input type="checkbox" id="spotify-tint" checked /> Tint the visualizations with the album art colors</span>
+                    </label>
+                    <label class="field">
+                      <span>Full screen</span>
+                      <span><input type="checkbox" id="fs-track" checked /> Keep the song title and album art visible in full screen</span>
                     </label>
                     <details class="spotify-setup" id="spotify-setup">
                       <summary>One-time setup (Client ID)</summary>

@@ -28,6 +28,8 @@ export interface Settings {
   showTaskbar: boolean;
   maximized: boolean | null;
   albumTint: boolean;
+  /** Keep the song title on screen in full screen instead of only on song changes. */
+  fullscreenTrack: boolean;
 }
 
 const KEY = 'xp-media-visualizer.settings.v1';
@@ -44,6 +46,7 @@ const DEFAULTS: Settings = {
   showTaskbar: true,
   maximized: null,
   albumTint: true,
+  fullscreenTrack: true,
 };
 
 export function loadSettings(): Settings {
