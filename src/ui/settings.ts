@@ -30,6 +30,8 @@ export interface Settings {
   albumTint: boolean;
   /** Keep the song title on screen in full screen instead of only on song changes. */
   fullscreenTrack: boolean;
+  /** Low-res, 16-bit, flat 2D rendering like the original visualizations. */
+  classicMode: boolean;
 }
 
 const KEY = 'xp-media-visualizer.settings.v1';
@@ -47,6 +49,7 @@ const DEFAULTS: Settings = {
   maximized: null,
   albumTint: true,
   fullscreenTrack: true,
+  classicMode: false,
 };
 
 export function loadSettings(): Settings {

@@ -14,8 +14,9 @@ Possible next steps, roughly in order of impact.
 
 ## More of the XP soul
 
-4. **More scenes from the originals:** Battery "spiderbite", Ambience "Bubbles", Alchemy-style mixes that combine
-   parts of different scenes, and a faithful 2D "classic mode" toggle for pure nostalgia.
+4. **More scenes from the originals:** ~~Battery "spiderbite", Ambience "Bubbles", Alchemy-style mixes that combine
+   parts of different scenes, and a faithful 2D "classic mode" toggle for pure nostalgia.~~ Done: spiderbite,
+   Bubbles, Fire Storm, Alchemy : Mix, and *View > Classic Mode*.
 5. **Equalizer and enhancements panel** from WMP 9, with working sliders that shape what the visuals react to
    (more bass, less treble).
 6. **Compact "skin mode":** the famous oddly shaped mini player as a small window.

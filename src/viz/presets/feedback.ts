@@ -6,8 +6,8 @@ import { applyAudio, createAudioUniforms } from '../helpers';
 import type { BloomSettings, Preset, PresetContext } from '../types';
 
 export interface FeedbackOptions {
-  /** 0 = "event horizon" (outward flow, wave ring), 1 = "chemical star" (inward flow, star). */
-  mode: 0 | 1;
+  /** 0 = "event horizon" (outward flow, wave ring), 1 = "chemical star" (inward flow, star), 2 = "spiderbite" (web). */
+  mode: 0 | 1 | 2;
   /** Kaleidoscope segments for the final image, 0 disables it. */
   kaleido: number;
   bloom: BloomSettings;
@@ -75,9 +75,13 @@ export class FeedbackPreset implements Preset {
           if (uMode < 0.5) {
             zoom = 1.0 - (0.006 + uBass * 0.022 + uBeat * 0.02) * f;
             rot = (0.002 + uMid * 0.012) * f * sin(uTime * 0.11 + 0.7);
-          } else {
+          } else if (uMode < 1.5) {
             zoom = 1.0 + (0.005 + uBass * 0.012 + uBeat * 0.01) * f;
             rot = (0.005 + uMid * 0.012) * f;
+          } else {
+            // Web: a slow outward creep that rocks back and forth with the music.
+            zoom = 1.0 - (0.003 + uBeat * 0.012) * f;
+            rot = sin(uTime * 0.4) * (0.004 + uMid * 0.01) * f;
           }
           float swirl = sin(r * 9.0 - uTime * 1.3) * 0.004 * f * (0.3 + uTreble * 2.0);
           float a = a0 + rot + swirl;
@@ -103,6 +107,26 @@ export class FeedbackPreset implements Preset {
             inj += hue(uHue + u, 0.85, 1.0) * smoothstep(0.011, 0.0, abs(r - ringR)) * (0.4 + uLevel * 1.6);
             float petalR = 0.05 + sp * 0.07;
             inj += hue(uHue + 0.5 + tt * 0.3, 0.7, 1.0) * smoothstep(0.012, 0.0, abs(r - petalR)) * sp * 1.4;
+          } else if (uMode > 1.5) {
+            // Spider web: spokes plus polygonal rings that sag between them.
+            const float SPOKES = 10.0;
+            const float SEG = 6.2831853 / SPOKES;
+            float spin = uTime * 0.07;
+            float am = mod(a0 + spin, SEG) - SEG * 0.5;
+            float spokeIdx = floor((a0 + spin) / SEG + SPOKES);
+            float spokeBand = texture2D(uSpectrum, vec2(0.05 + mod(spokeIdx, SPOKES) / SPOKES * 0.7, 0.5)).r;
+            float spokeLen = 0.12 + spokeBand * 0.45;
+            float spoke = smoothstep(0.005, 0.0, abs(sin(am)) * r) * step(r, spokeLen) * (0.2 + spokeBand * 0.9);
+            // Distance from centre to the polygon edge in this direction, so rings bend like silk.
+            float poly = cos(SEG * 0.5) / cos(am);
+            float ringR = r / poly;
+            float ringIdx = floor(ringR / 0.075 + 0.5);
+            float ringBand = texture2D(uSpectrum, vec2(0.03 + ringIdx * 0.09, 0.5)).r;
+            float ring = smoothstep(0.007, 0.0, abs(ringR - ringIdx * 0.075 - w * 0.012)) * step(0.5, ringIdx) * step(ringIdx, 6.5);
+            ring *= ringBand * 0.9;
+            inj += hue(uHue + 0.28 + ringIdx * 0.04, 0.85, 1.0) * ring;
+            inj += hue(uHue + 0.82, 0.7, 1.0) * spoke;
+            inj += hue(uHue + 0.1, 0.5, 1.0) * smoothstep(0.035, 0.0, r) * (0.3 + uBeat * 1.5);
           } else {
             const float POINTS = 6.0;
             float k = abs(fract(u * POINTS) - 0.5) * 2.0;

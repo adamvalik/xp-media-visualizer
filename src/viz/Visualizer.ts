@@ -130,6 +130,42 @@ const FinishShader = {
   `,
 };
 
+/** Classic Mode output: 16-bit colour (5-6-5) with 4x4 ordered dithering, applied after tone mapping. */
+const RetroShader = {
+  name: 'RetroShader',
+  uniforms: {
+    tDiffuse: { value: null },
+  },
+  vertexShader: /* glsl */ `
+    varying vec2 vUv;
+    void main() {
+      vUv = uv;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+  `,
+  fragmentShader: /* glsl */ `
+    uniform sampler2D tDiffuse;
+    varying vec2 vUv;
+    float bayer2(vec2 a) {
+      a = floor(a);
+      return fract(dot(a, vec2(0.5, a.y * 0.75)));
+    }
+    float bayer4(vec2 a) {
+      return bayer2(0.5 * a) * 0.25 + bayer2(a);
+    }
+    void main() {
+      vec3 c = texture2D(tDiffuse, vUv).rgb;
+      float d = bayer4(gl_FragCoord.xy) - 0.5;
+      vec3 levels = vec3(31.0, 63.0, 31.0);
+      c = floor(c * levels + 0.5 + d) / levels;
+      gl_FragColor = vec4(clamp(c, 0.0, 1.0), 1.0);
+    }
+  `,
+};
+
+/** Classic Mode renders about this many lines tall, roughly a 2003 visualization window. */
+const CLASSIC_LINES = 340;
+
 export interface PresetChangeDetail {
   def: PresetDef;
   auto: boolean;
@@ -145,9 +181,13 @@ export class Visualizer extends EventTarget {
   private readonly presetPass = new PresetPass();
   private readonly bloomPass: UnrealBloomPass;
   private readonly finishPass: ShaderPass;
+  private readonly retroPass: ShaderPass;
+  private classic = false;
   private readonly instances = new Map<string, Preset>();
   private currentId = '';
-  private previousId: string | null = null;
+  /** Instance keys: the preset id, plus "#classic" for the flat 2D variants. */
+  private currentKey = '';
+  private previousKey: string | null = null;
   private transition = 1;
   private autoMode = false;
   private autoTimer = 0;
@@ -192,6 +232,9 @@ export class Visualizer extends EventTarget {
     this.composer.addPass(this.bloomPass);
     this.composer.addPass(this.finishPass);
     this.composer.addPass(new OutputPass());
+    this.retroPass = new ShaderPass(RetroShader);
+    this.retroPass.enabled = false;
+    this.composer.addPass(this.retroPass);
 
     new ResizeObserver(() => this.resize()).observe(canvas.parentElement ?? canvas);
     this.resize();
@@ -229,17 +272,48 @@ export class Visualizer extends EventTarget {
     this.autoTimer = 0;
     this.barsSinceSwitch = 0;
     if (id !== this.currentId) {
-      this.instance(def);
-      if (this.currentId) {
-        this.previousId = this.currentId;
-        this.transition = 0;
-        // With a tempo lock, crossfade over two beats so the new scene arrives in time.
-        const tempo = this.lastFrame?.tempo;
-        this.transitionSeconds = tempo?.locked ? Math.min(Math.max((60 / tempo.bpm) * 2, 0.6), 2) : TRANSITION_SECONDS;
-      }
+      this.switchTo(def);
       this.currentId = id;
     }
     this.dispatchEvent(new CustomEvent<PresetChangeDetail>('presetchange', { detail: { def, auto: this.autoMode } }));
+  }
+
+  get classicMode() {
+    return this.classic;
+  }
+
+  /**
+   * Classic Mode: low-resolution pixels, no bloom, 16-bit colour, and the flat
+   * 2D versions of the scenes that have one.
+   */
+  setClassic(on: boolean) {
+    if (on === this.classic) return;
+    this.classic = on;
+    this.bloomPass.enabled = !on;
+    this.retroPass.enabled = on;
+    this.canvas.style.imageRendering = on ? 'pixelated' : '';
+    this.applySize();
+    const def = PRESETS.find((p) => p.id === this.currentId);
+    if (def) this.switchTo(def);
+  }
+
+  /** Crossfade to the instance for `def` (classic or modern variant). */
+  private switchTo(def: PresetDef) {
+    const key = this.keyFor(def);
+    if (key === this.currentKey) return;
+    this.instance(def);
+    if (this.currentKey) {
+      this.previousKey = this.currentKey;
+      this.transition = 0;
+      // With a tempo lock, crossfade over two beats so the new scene arrives in time.
+      const tempo = this.lastFrame?.tempo;
+      this.transitionSeconds = tempo?.locked ? Math.min(Math.max((60 / tempo.bpm) * 2, 0.6), 2) : TRANSITION_SECONDS;
+    }
+    this.currentKey = key;
+  }
+
+  private keyFor(def: PresetDef) {
+    return this.classic && def.classic ? `${def.id}#classic` : def.id;
   }
 
   step(delta: number) {
@@ -277,21 +351,28 @@ export class Visualizer extends EventTarget {
   }
 
   private instance(def: PresetDef): Preset {
-    let preset = this.instances.get(def.id);
+    const key = this.keyFor(def);
+    let preset = this.instances.get(key);
     if (!preset) {
-      preset = def.create({ renderer: this.renderer, textures: this.textures });
+      const ctx = { renderer: this.renderer, textures: this.textures };
+      preset = key.endsWith('#classic') ? def.classic!(ctx) : def.create(ctx);
       preset.resize(this.deviceWidth, this.deviceHeight);
-      this.instances.set(def.id, preset);
+      this.instances.set(key, preset);
     }
     return preset;
   }
 
+  /** Pixel ratio actually rendered at; Classic Mode drops to a fixed low line count. */
+  private get renderRatio() {
+    return this.classic ? Math.min(this.pixelRatio, CLASSIC_LINES / Math.max(1, this.cssHeight)) : this.pixelRatio;
+  }
+
   private get deviceWidth() {
-    return Math.max(1, Math.floor(this.cssWidth * this.pixelRatio));
+    return Math.max(1, Math.floor(this.cssWidth * this.renderRatio));
   }
 
   private get deviceHeight() {
-    return Math.max(1, Math.floor(this.cssHeight * this.pixelRatio));
+    return Math.max(1, Math.floor(this.cssHeight * this.renderRatio));
   }
 
   private resize() {
@@ -306,9 +387,10 @@ export class Visualizer extends EventTarget {
   }
 
   private applySize() {
-    this.renderer.setPixelRatio(this.pixelRatio);
+    const ratio = this.renderRatio;
+    this.renderer.setPixelRatio(ratio);
     this.renderer.setSize(this.cssWidth, this.cssHeight, false);
-    this.composer.setPixelRatio(this.pixelRatio);
+    this.composer.setPixelRatio(ratio);
     this.composer.setSize(this.cssWidth, this.cssHeight);
     for (const preset of this.instances.values()) preset.resize(this.deviceWidth, this.deviceHeight);
   }
@@ -340,15 +422,15 @@ export class Visualizer extends EventTarget {
       }
     }
 
-    const current = this.instances.get(this.currentId)!;
+    const current = this.instances.get(this.currentKey)!;
     current.update(frame, dt, this.time);
 
     let previous: Preset | null = null;
-    if (this.previousId) {
+    if (this.previousKey) {
       this.transition += dt / this.transitionSeconds;
-      if (this.transition >= 1) this.previousId = null;
+      if (this.transition >= 1) this.previousKey = null;
       else {
-        previous = this.instances.get(this.previousId) ?? null;
+        previous = this.instances.get(this.previousKey) ?? null;
         previous?.update(frame, dt, this.time);
       }
     }
@@ -366,7 +448,10 @@ export class Visualizer extends EventTarget {
 
     const fu = this.finishPass.uniforms;
     fu.uTime.value = this.time;
-    fu.uAberration.value = 0.25 + frame.beat * 0.9;
+    // Classic Mode skips the modern lens effects; the retro pass does the styling.
+    fu.uAberration.value = this.classic ? 0 : 0.25 + frame.beat * 0.9;
+    fu.uGrain.value = this.classic ? 0 : 0.01;
+    fu.uVignette.value = this.classic ? 0.15 : 0.45;
     const ease = 1 - Math.exp(-dt * 1.5);
     this.tint.lerp(this.tintTarget, ease);
     this.tintAmount += (this.tintAmountTarget - this.tintAmount) * ease;
@@ -385,7 +470,7 @@ export class Visualizer extends EventTarget {
   private adaptResolution(rawDt: number) {
     const p = this.perf;
     p.sinceDrop += rawDt;
-    if (rawDt > 0.25 || this.previousId) return;
+    if (rawDt > 0.25 || this.previousKey || this.classic) return;
     p.time += rawDt;
     p.frames++;
     if (rawDt > 1 / 40) p.slow++;

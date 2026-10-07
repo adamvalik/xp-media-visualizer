@@ -28,4 +28,6 @@ export interface PresetDef {
   name: string;
   description: string;
   create(ctx: PresetContext): Preset;
+  /** Faithful flat 2D version used in Classic Mode, when the scene has one. */
+  classic?(ctx: PresetContext): Preset;
 }

@@ -107,7 +107,7 @@ export class App {
       viz.addEventListener('presetchange', (e) => this.onPresetChange((e as CustomEvent<PresetChangeDetail>).detail));
       viz.onFrame = (frame) => this.onFrame(frame);
       if (this.settings.preset === RANDOM_ID) viz.setAuto(true);
-      else viz.setPreset(PRESETS.some((p) => p.id === this.settings.preset) ? this.settings.preset : PRESETS[2].id);
+      else viz.setPreset(PRESETS.some((p) => p.id === this.settings.preset) ? this.settings.preset : 'bars-bars');
       viz.start();
     } else {
       this.showWebGLError();
@@ -212,6 +212,17 @@ export class App {
       case 'toggle-taskbar':
         this.settings.showTaskbar = !this.settings.showTaskbar;
         return this.applyLayout();
+      case 'toggle-classic':
+        this.settings.classicMode = !this.settings.classicMode;
+        this.applyLayout();
+        return this.notify.showBalloon(
+          $('#vis-name'),
+          this.settings.classicMode ? 'Classic Mode on' : 'Classic Mode off',
+          this.settings.classicMode
+            ? 'Low-res pixels, 16-bit color and the flat 2D Bars, Ocean Mist and Scope, like it is 2003.'
+            : 'Back to the modern 3D scenes.',
+          4,
+        );
       case 'toggle-fs-track':
         this.settings.fullscreenTrack = !this.settings.fullscreenTrack;
         return this.applyLayout();
@@ -620,6 +631,8 @@ export class App {
     this.checkMenuItem('playlist', this.settings.showPlaylist);
     this.checkMenuItem('taskbar', this.settings.showTaskbar);
     this.stage.classList.toggle('pin-track', this.settings.fullscreenTrack);
+    this.viz?.setClassic(this.settings.classicMode);
+    this.checkMenuItem('classic', this.settings.classicMode);
     this.checkMenuItem('fs-track', this.settings.fullscreenTrack);
     $<HTMLInputElement>('#fs-track').checked = this.settings.fullscreenTrack;
     this.save();
@@ -754,6 +767,9 @@ export class App {
           break;
         case 'i':
           this.run('toggle-fs-track');
+          break;
+        case 'c':
+          this.run('toggle-classic');
           break;
         case 'ArrowUp':
           e.preventDefault();
@@ -1001,6 +1017,7 @@ export class App {
       ['F or double-click', 'Full screen'],
       ['M', 'Mute'],
       ['I', 'Show the song title in full screen'],
+      ['C', 'Classic Mode (2003 look)'],
       ['Up / Down', 'Volume (files and demo)'],
       ['Ctrl+O', 'Open audio files'],
     ];

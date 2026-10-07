@@ -64,15 +64,25 @@ the detected BPM with a dot that pulses on every beat (yellow on the first beat 
 
 | Collection | Name | What it does |
 | --- | --- | --- |
-| Alchemy | Random | Hops between all the others, switching on the beat |
+| Alchemy | Random | Hops between all the others, switching on bar lines |
+| Alchemy | Mix | Two scenes layered at once; blend modes and layers change every few bars |
+| Ambience | Bubbles | Iridescent soap bubbles rising through dark water, each swelling with its own band |
 | Ambience | Swirl | 70k-particle spiral galaxy; bass in the core, treble on the rim |
 | Ambience | Water | Iridescent liquid orb that swells, ripples and shimmers |
 | Bars and Waves | Bars | 3D spectrum bars with falling peaks and history scrolling into the distance |
+| Bars and Waves | Fire Storm | Flat bars that burn, with flames and smoke rising off the tops |
 | Bars and Waves | Ocean Mist | Glowing spectrogram sea rolling toward a misty horizon |
 | Bars and Waves | Scope | The oscilloscope as a tunnel of waveform rings |
-| Battery | event horizon | Video-feedback warp pouring out of a pulsing waveform ring |
 | Battery | chemical star | Kaleidoscopic star collapsing inward on every beat |
+| Battery | event horizon | Video-feedback warp pouring out of a pulsing waveform ring |
 | Battery | hyperspace | Flight through a tunnel built from spectrum rings |
+| Battery | spiderbite | A trembling spider web of light; every strand is a frequency band |
+
+### Classic Mode
+
+*View > Classic Mode* (or **C**) brings back the 2003 look: the picture is rendered at about 340 lines and
+scaled up with hard pixels, bloom and lens effects are off, colors are reduced to 16-bit with ordered
+dithering, and Bars, Ocean Mist and Scope switch to faithful flat 2D versions of the originals.
 
 ## Controls
 
@@ -86,6 +96,7 @@ the detected BPM with a dot that pulses on every beat (yellow on the first beat 
 | F or double-click | Full screen |
 | M | Mute |
 | I | Keep the song title visible in full screen (also *View > Show Song in Full Screen*) |
+| C | Classic Mode |
 | Up / Down | Volume (files and demo) |
 | Ctrl+O | Open audio files (or drag them onto the window) |
 
@@ -117,7 +128,7 @@ src/
   viz/
     Visualizer.ts    render loop, crossfades, bloom + finishing pass, Alchemy mode, adaptive resolution
     AudioTextures.ts spectrum/waveform as GPU textures, plus scrolling history textures
-    presets/         one file per scene (bars, ocean, scope, swirl, water, feedback, tunnel)
+    presets/         one file per scene; flat.ts holds the 2D classics, mix.ts the Alchemy layering
   spotify/           PKCE login, now-playing polling, album art color extraction
   ui/                XP window manager, menus, balloons, dialogs, playlist, transport, skins
   styles/xp.css      Luna chrome and the WMP 9 frame, four skins

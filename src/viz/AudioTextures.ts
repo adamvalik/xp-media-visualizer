@@ -18,11 +18,18 @@ const toByte = (v: number) => (v <= 0 ? 0 : v >= 1 ? 255 : (v * 255) | 0);
 export class AudioTextures {
   private readonly specData = new Uint8Array(BANDS);
   private readonly waveData = new Uint8Array(WAVE_SIZE).fill(128);
+  private readonly peakData = new Uint8Array(BANDS);
   readonly spectrum = byteTexture(BANDS, 1, this.specData);
   readonly waveform = byteTexture(WAVE_SIZE, 1, this.waveData);
+  /** Falling peak markers, for the classic 2D bars. */
+  readonly peaks = byteTexture(BANDS, 1, this.peakData);
 
   update(frame: AudioFrame) {
-    for (let i = 0; i < BANDS; i++) this.specData[i] = toByte(frame.spectrum[i]);
+    for (let i = 0; i < BANDS; i++) {
+      this.specData[i] = toByte(frame.spectrum[i]);
+      this.peakData[i] = toByte(frame.peaks[i]);
+    }
+    this.peaks.needsUpdate = true;
     for (let i = 0; i < WAVE_SIZE; i++) this.waveData[i] = toByte(frame.waveform[i] * 0.5 + 0.5);
     this.spectrum.needsUpdate = true;
     this.waveform.needsUpdate = true;
