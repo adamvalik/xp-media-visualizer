@@ -12,9 +12,9 @@ try {
   console.error('Could not start the visualizer', err);
 }
 
-new App(engine, visualizer);
+const app = new App(engine, visualizer);
 
-if (import.meta.env.DEV) Object.assign(window, { __xp: { engine, visualizer } });
+if (import.meta.env.DEV) Object.assign(window, { __xp: { engine, visualizer, app } });
 
 if (import.meta.env.PROD && 'serviceWorker' in navigator) {
   window.addEventListener('load', () => {

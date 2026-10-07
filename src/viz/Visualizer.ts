@@ -81,7 +81,7 @@ class PresetPass extends Pass {
   }
 }
 
-/** Vignette, a touch of beat-driven chromatic aberration and film grain. */
+/** Vignette, beat-driven chromatic aberration, film grain and an optional colour tint (album art). */
 const FinishShader = {
   name: 'FinishShader',
   uniforms: {
@@ -90,6 +90,8 @@ const FinishShader = {
     uAberration: { value: 0 },
     uVignette: { value: 0.45 },
     uGrain: { value: 0.01 },
+    uTint: { value: new THREE.Vector3(1, 1, 1) },
+    uTintAmount: { value: 0 },
   },
   vertexShader: /* glsl */ `
     varying vec2 vUv;
@@ -104,6 +106,8 @@ const FinishShader = {
     uniform float uAberration;
     uniform float uVignette;
     uniform float uGrain;
+    uniform vec3 uTint;
+    uniform float uTintAmount;
     varying vec2 vUv;
     void main() {
       vec2 c = vUv - 0.5;
@@ -114,6 +118,10 @@ const FinishShader = {
         texture2D(tDiffuse, vUv).g,
         texture2D(tDiffuse, vUv - off).b
       );
+      // Re-colour towards the tint while keeping brightness, so scenes keep their contrast.
+      const vec3 LUMA = vec3(0.2126, 0.7152, 0.0722);
+      vec3 tinted = dot(col, LUMA) * uTint / max(dot(uTint, LUMA), 0.05);
+      col = mix(col, tinted, uTintAmount);
       col *= 1.0 - uVignette * r2 * 1.8;
       float n = fract(sin(dot(vUv * 1000.0 + fract(uTime) * 100.0, vec2(12.9898, 78.233))) * 43758.5453);
       col += (n - 0.5) * uGrain;
@@ -153,6 +161,10 @@ export class Visualizer extends EventTarget {
   private last = 0;
   private time = 0;
   private renderEnabled = true;
+  private readonly tint = new THREE.Vector3(1, 1, 1);
+  private readonly tintTarget = new THREE.Vector3(1, 1, 1);
+  private tintAmount = 0;
+  private tintAmountTarget = 0;
   private readonly perf = { time: 0, frames: 0, slow: 0, sinceDrop: 1e9 };
 
   constructor(private readonly canvas: HTMLCanvasElement, private readonly engine: AudioEngine) {
@@ -227,6 +239,15 @@ export class Visualizer extends EventTarget {
     const i = PRESETS.findIndex((p) => p.id === this.currentId);
     const next = PRESETS[(i + delta + PRESETS.length) % PRESETS.length];
     this.setPreset(next.id);
+  }
+
+  /** Tint the image towards a colour (0..1 sRGB), e.g. from album art; null fades it out. */
+  setTint(rgb: [number, number, number] | null, amount = 0.35) {
+    if (rgb) {
+      const c = new THREE.Color().setRGB(rgb[0], rgb[1], rgb[2], THREE.SRGBColorSpace);
+      this.tintTarget.set(c.r, c.g, c.b);
+    }
+    this.tintAmountTarget = rgb ? amount : 0;
   }
 
   setAuto(on: boolean) {
@@ -330,6 +351,11 @@ export class Visualizer extends EventTarget {
     const fu = this.finishPass.uniforms;
     fu.uTime.value = this.time;
     fu.uAberration.value = 0.25 + frame.beat * 0.9;
+    const ease = 1 - Math.exp(-dt * 1.5);
+    this.tint.lerp(this.tintTarget, ease);
+    this.tintAmount += (this.tintAmountTarget - this.tintAmount) * ease;
+    fu.uTint.value.copy(this.tint);
+    fu.uTintAmount.value = this.tintAmount;
 
     this.composer.render(dt);
     this.adaptResolution(rawDt);

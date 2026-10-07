@@ -1780,3 +1780,132 @@ dialog.modal::backdrop {
     animation: none;
   }
 }
+
+/* ---------- Spotify ---------- */
+
+.xp-input {
+  height: 21px;
+  min-width: 0;
+  padding: 0 4px;
+  border: 1px solid #7f9db9;
+  background: #fff;
+  font: inherit;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.xp-btn.small {
+  min-width: 0;
+  height: 19px;
+  padding: 0 8px;
+}
+
+.spotify-status-row .spotify-actions {
+  display: flex;
+  gap: 6px;
+}
+
+#spotify-status.connected {
+  color: #1a7f37;
+  font-weight: bold;
+}
+
+#spotify-status.error {
+  color: #c4291c;
+}
+
+.spotify-setup summary {
+  cursor: pointer;
+  color: #0046d5;
+}
+
+.spotify-setup ol {
+  margin: 6px 0 8px;
+  padding-left: 20px;
+}
+
+.spotify-setup li {
+  margin-bottom: 4px;
+}
+
+.spotify-setup code {
+  padding: 1px 4px;
+  background: #fff;
+  border: 1px solid #d0d0bf;
+  user-select: all;
+  -webkit-user-select: all;
+}
+
+.now-card {
+  display: grid;
+  grid-template-columns: 48px 1fr;
+  gap: 8px;
+  align-items: center;
+}
+
+.now-card[hidden] {
+  display: none;
+}
+
+.now-card img {
+  width: 48px;
+  height: 48px;
+  border-radius: 2px;
+  object-fit: cover;
+  background: rgba(0, 0, 0, 0.4);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+}
+
+.now-text {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+.now-text b,
+.now-text span {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.now-text b {
+  color: var(--panel-current);
+}
+
+.now-text span {
+  color: var(--panel-muted);
+}
+
+.now-progress {
+  height: 3px;
+  margin-top: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.15);
+  overflow: hidden;
+}
+
+.now-progress div {
+  width: 0;
+  height: 100%;
+  background: var(--panel-current);
+}
+
+.track-toast {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.track-toast img {
+  width: 64px;
+  height: 64px;
+  border-radius: 3px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.7);
+}
+
+.track-toast div {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

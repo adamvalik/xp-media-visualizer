@@ -14,7 +14,8 @@ npm install
 npm run dev
 ```
 
-Open http://localhost:5173, then pick a source in the welcome dialog.
+Open http://127.0.0.1:5173, then pick a source in the welcome dialog. (The dev server binds to 127.0.0.1
+because Spotify does not accept `localhost` redirect addresses.)
 
 ```bash
 npm run build     # static site in dist/
@@ -31,6 +32,24 @@ npm run preview   # serve the production build locally
 3. **Spotify desktop app without a mic:** install a loopback driver such as [BlackHole](https://github.com/ExistentialAudio/BlackHole),
    route Spotify through it (a macOS Multi-Output Device keeps your speakers working) and select it as the
    input device in **Radio Tuner**.
+
+## Song info from Spotify
+
+Optionally connect your Spotify account (read-only) to show the title, artist and album art of whatever is
+playing, with a WMP-style overlay on every song change and the visuals tinted by the album colors. It is shown
+while the visualizer listens to the microphone or a tab; the sound itself still comes from that source.
+
+One-time setup (Radio Tuner > *Spotify: song info*, or *File > Connect to Spotify...*):
+
+1. Create an app at https://developer.spotify.com/dashboard (select *Web API*).
+2. Add the Redirect URI shown in the player: `http://127.0.0.1:5173/` locally, and your deployed address,
+   e.g. `https://your-app.vercel.app/`, once hosted.
+3. Paste the app's Client ID into the player and click *Connect*. To skip the paste on a deployment, set
+   `VITE_SPOTIFY_CLIENT_ID` as a build environment variable.
+
+Login uses the Authorization Code flow with PKCE, entirely in the browser; there is no server and no client
+secret. Apps in Spotify's development mode only work for accounts you add under *User Management* in the
+dashboard.
 
 ## Visualizations
 
@@ -88,6 +107,7 @@ src/
     Visualizer.ts    render loop, crossfades, bloom + finishing pass, Alchemy mode, adaptive resolution
     AudioTextures.ts spectrum/waveform as GPU textures, plus scrolling history textures
     presets/         one file per scene (bars, ocean, scope, swirl, water, feedback, tunnel)
+  spotify/           PKCE login, now-playing polling, album art color extraction
   ui/                XP window manager, menus, balloons, dialogs, playlist, transport, skins
   styles/xp.css      Luna chrome and the WMP 9 frame, four skins
 ```
@@ -96,6 +116,8 @@ The analysis is normalised against the loudest recent band, so the visuals react
 signal is a quiet laptop mic or a full-scale tab capture. Each scene reads the spectrum and waveform from
 small textures; the Bars, Ocean, Scope and hyperspace scenes also keep a ring buffer of past frames in a
 texture, which is how the history scrolls smoothly at any refresh rate.
+
+More ideas for the future are in [IDEAS.md](IDEAS.md).
 
 ## Notes
 

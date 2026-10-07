@@ -60,6 +60,8 @@
                   <button data-cmd="source-tab">Capture Browser Tab Audio...</button>
                   <button data-cmd="source-demo">Play Demo Beat</button>
                   <hr />
+                  <button data-cmd="view-spotify" id="spotify-menu-item">Connect to Spotify...</button>
+                  <hr />
                   <button data-cmd="window-close">Exit</button>
                 </div>
               </div>
@@ -238,6 +240,35 @@
                     </div>
                     <p class="hint">Tip: on a Mac you can route the Spotify app straight into the visualizer with a free loopback driver such as BlackHole, then pick it as the input device above.</p>
                   </fieldset>
+                  <fieldset class="group-box" id="spotify-box">
+                    <legend>Spotify: song info</legend>
+                    <p class="hint">Shows the title, artist and album art of whatever your Spotify account is playing (on any device) and tints the visuals with the album colors. The sound itself still comes from the source above. Read-only: the visualizer can't control playback.</p>
+                    <div class="field spotify-status-row">
+                      <span>Status</span>
+                      <span id="spotify-status">Not connected</span>
+                      <span class="spotify-actions">
+                        <button class="xp-btn" id="spotify-connect">Connect</button>
+                        <button class="xp-btn" id="spotify-disconnect" hidden>Disconnect</button>
+                      </span>
+                    </div>
+                    <label class="field">
+                      <span>Album color tint</span>
+                      <span><input type="checkbox" id="spotify-tint" checked /> Tint the visualizations with the album art colors</span>
+                    </label>
+                    <details class="spotify-setup" id="spotify-setup">
+                      <summary>One-time setup (Client ID)</summary>
+                      <ol>
+                        <li>Open <a href="https://developer.spotify.com/dashboard" target="_blank" rel="noopener">developer.spotify.com/dashboard</a> and create an app (any name, select "Web API").</li>
+                        <li>Add this exact Redirect URI: <code id="spotify-redirect"></code> <button class="xp-btn small" id="spotify-copy">Copy</button></li>
+                        <li>Copy the app's Client ID here:</li>
+                      </ol>
+                      <label class="field">
+                        <span>Client ID</span>
+                        <input id="spotify-client-id" class="xp-input" type="text" spellcheck="false" autocomplete="off" placeholder="32-character Client ID" />
+                      </label>
+                      <p class="hint" id="spotify-redirect-hint"></p>
+                    </details>
+                  </fieldset>
                 </div>
 
                 <div class="view panel-view" data-view="skins">
@@ -256,6 +287,14 @@
               </div>
               <ol class="pl-list" id="pl-list"></ol>
               <div class="pl-foot">
+                <div class="now-card" id="now-card" hidden>
+                  <img id="now-art" alt="" width="48" height="48" />
+                  <div class="now-text">
+                    <b id="now-title"></b>
+                    <span id="now-artist"></span>
+                    <div class="now-progress"><div id="now-progress-fill"></div></div>
+                  </div>
+                </div>
                 <div class="pl-source" id="pl-source">No source</div>
                 <canvas id="mini-spectrum" class="mini-spectrum" width="220" height="44"></canvas>
               </div>

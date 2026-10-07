@@ -27,6 +27,7 @@ export interface Settings {
   showPlaylist: boolean;
   showTaskbar: boolean;
   maximized: boolean | null;
+  albumTint: boolean;
 }
 
 const KEY = 'xp-media-visualizer.settings.v1';
@@ -42,6 +43,7 @@ const DEFAULTS: Settings = {
   showPlaylist: true,
   showTaskbar: true,
   maximized: null,
+  albumTint: true,
 };
 
 export function loadSettings(): Settings {

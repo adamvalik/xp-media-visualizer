@@ -1,5 +1,7 @@
 import { BANDS, type AudioFrame } from '../audio/analysis';
 import { AudioEngine, type SourceKind } from '../audio/AudioEngine';
+import { albumColor } from '../spotify/albumColor';
+import { SpotifyClient, redirectUri } from '../spotify/SpotifyClient';
 import { PRESETS, RANDOM_DEF, RANDOM_ID, presetLabel } from '../viz/presets';
 import type { PresetChangeDetail, Visualizer } from '../viz/Visualizer';
 import { setupMenus } from './menus';
@@ -68,6 +70,9 @@ export class App {
   private idleTimer = 0;
   private seeking = false;
   private installPrompt: InstallPromptEvent | null = null;
+  private readonly spotify = new SpotifyClient();
+  private albumRgb: [number, number, number] | null = null;
+  private lastSpotifyError = '';
 
   constructor(private readonly engine: AudioEngine, private readonly viz: Visualizer | null) {
     document.documentElement.dataset.skin = this.settings.skin;
@@ -94,6 +99,7 @@ export class App {
     this.bindDragAndDrop();
     this.bindFullscreen();
     this.bindInstall();
+    this.bindSpotify();
     this.applyLayout();
 
     engine.addEventListener('change', () => this.onEngineChange());
@@ -197,6 +203,9 @@ export class App {
         return this.setView('sources');
       case 'view-skins':
         return this.setView('skins');
+      case 'view-spotify':
+        this.setView('sources');
+        return $('#spotify-box').scrollIntoView({ block: 'start', behavior: 'smooth' });
       case 'toggle-playlist':
         this.settings.showPlaylist = !this.settings.showPlaylist;
         return this.applyLayout();
@@ -360,11 +369,11 @@ export class App {
       setFill(volume);
     }
 
-    const status = this.statusText();
+    const status = this.spotifyLine() && playing ? `Playing: ${this.spotifyLine()}` : this.statusText();
     $('#lcd-status').textContent = status;
     $('#lcd-status').title = status;
     $('.lcd').classList.toggle('error', e.state === 'error');
-    $('#top-info').textContent = e.kind && e.state !== 'error' ? e.label : 'Ready';
+    $('#top-info').textContent = this.spotifyLine() || (e.kind && e.state !== 'error' ? e.label : 'Ready');
     $('#pl-source').textContent = e.kind ? `Source: ${e.label}` : 'No source selected';
 
     const seek = $('#seek');
@@ -385,7 +394,9 @@ export class App {
 
     if (playing && e.label !== this.lastToastLabel) {
       this.lastToastLabel = e.label;
-      this.showTrackToast(e.label, e.kind ? SOURCE_NAMES[e.kind] : '');
+      const track = this.spotifyTrack();
+      if (track) this.showTrackToast(track.title, track.artists, track.imageUrl);
+      else this.showTrackToast(e.label, e.kind ? SOURCE_NAMES[e.kind] : '');
       if (e.kind === 'mic') void this.refreshDevices();
     }
 
@@ -393,6 +404,7 @@ export class App {
     this.settings.muted = e.muted;
     this.settings.micDeviceId = e.micDeviceId || this.settings.micDeviceId;
     this.save();
+    this.applyTint();
     this.tick();
   }
 
@@ -417,6 +429,10 @@ export class App {
   /** Time display and seek bar, refreshed a few times per second. */
   private tick() {
     const e = this.engine;
+    const track = this.spotify.track;
+    if (track && track.durationMs > 0) {
+      $('#now-progress-fill').style.width = `${(this.spotify.progressMs / track.durationMs) * 100}%`;
+    }
     const time = $('#lcd-time');
     if (e.kind === 'file' && e.duration > 0) time.textContent = `${formatTime(e.elapsed)} / ${formatTime(e.duration)}`;
     else time.textContent = formatTime(e.elapsed);
@@ -463,14 +479,23 @@ export class App {
     this.save();
   }
 
-  private showTrackToast(title: string, subtitle: string) {
+  private showTrackToast(title: string, subtitle: string, imageUrl = '') {
     const toast = $('#track-toast');
-    toast.replaceChildren(document.createTextNode(title));
+    const text = document.createElement('div');
+    text.append(document.createTextNode(title));
     if (subtitle) {
       const small = document.createElement('small');
       small.textContent = subtitle;
-      toast.append(small);
+      text.append(small);
     }
+    toast.replaceChildren();
+    if (imageUrl) {
+      const img = new Image();
+      img.src = imageUrl;
+      img.alt = '';
+      toast.append(img);
+    }
+    toast.append(text);
     toast.classList.add('show');
     window.clearTimeout(this.trackToastTimer);
     this.trackToastTimer = window.setTimeout(() => toast.classList.remove('show'), 4500);
@@ -798,6 +823,123 @@ export class App {
       this.installPrompt = null;
       $('#install-item').hidden = true;
     });
+  }
+
+  // ---------- Spotify ----------
+
+  /** The Spotify track, but only when it describes what the visualizer hears (live inputs). */
+  private spotifyTrack() {
+    const t = this.spotify.track;
+    const kind = this.engine.kind;
+    if (!t || !t.isPlaying || kind === 'file' || kind === 'demo') return null;
+    return t;
+  }
+
+  private spotifyLine() {
+    const t = this.spotifyTrack();
+    return t ? (t.artists ? `${t.artists} \u2013 ${t.title}` : t.title) : '';
+  }
+
+  private bindSpotify() {
+    const sp = this.spotify;
+    const idInput = $<HTMLInputElement>('#spotify-client-id');
+    const tint = $<HTMLInputElement>('#spotify-tint');
+    const onLocalhost = location.hostname === 'localhost';
+
+    $('#spotify-redirect').textContent = redirectUri();
+    idInput.value = sp.clientId;
+    tint.checked = this.settings.albumTint;
+    if (onLocalhost) {
+      const loopback = `${location.protocol}//127.0.0.1${location.port ? `:${location.port}` : ''}${location.pathname}`;
+      $('#spotify-redirect-hint').innerHTML =
+        `Spotify does not accept "localhost" redirect addresses. Open <a href="${loopback}">${loopback}</a> instead and connect from there.`;
+    }
+
+    idInput.addEventListener('change', () => {
+      sp.clientId = idInput.value;
+      this.renderSpotify();
+    });
+    $('#spotify-copy').addEventListener('click', () => {
+      void navigator.clipboard?.writeText(redirectUri());
+      this.notify.showBalloon($('#spotify-copy'), 'Copied', 'Paste it under "Redirect URIs" in your Spotify app settings.', 4);
+    });
+    $('#spotify-connect').addEventListener('click', () => {
+      sp.clientId = idInput.value;
+      if (onLocalhost) {
+        $<HTMLDetailsElement>('#spotify-setup').open = true;
+        this.notify.showBalloon($('#spotify-connect'), 'Use 127.0.0.1', 'Spotify rejects "localhost". Open the 127.0.0.1 address shown below and connect there.');
+        return;
+      }
+      if (!sp.clientId) {
+        $<HTMLDetailsElement>('#spotify-setup').open = true;
+        idInput.focus();
+        this.notify.showBalloon(idInput, 'Client ID needed', 'Follow the one-time setup below, then paste your Client ID here.');
+        return;
+      }
+      void sp.connect();
+    });
+    $('#spotify-disconnect').addEventListener('click', () => sp.disconnect());
+    tint.addEventListener('change', () => {
+      this.settings.albumTint = tint.checked;
+      this.save();
+      this.applyTint();
+    });
+
+    sp.addEventListener('status', () => this.renderSpotify());
+    sp.addEventListener('track', (e) => this.onSpotifyTrack((e as CustomEvent<{ changed: boolean }>).detail.changed));
+    this.renderSpotify();
+    void sp.init();
+  }
+
+  private renderSpotify() {
+    const sp = this.spotify;
+    const status = $('#spotify-status');
+    const labels = { disconnected: 'Not connected', connecting: 'Connecting...', connected: 'Connected', error: sp.error };
+    status.textContent = labels[sp.status];
+    status.className = sp.status;
+    $('#spotify-connect').hidden = sp.connected;
+    $('#spotify-disconnect').hidden = !sp.connected;
+    $('#spotify-menu-item').textContent = sp.connected ? 'Spotify Settings...' : 'Connect to Spotify...';
+    if (!sp.clientId && !sp.connected) $<HTMLDetailsElement>('#spotify-setup').open = true;
+    if (sp.status === 'error' && sp.error && sp.error !== this.lastSpotifyError) {
+      this.notify.showBalloon($('#top-info'), 'Spotify', sp.error, 8);
+    }
+    this.lastSpotifyError = sp.status === 'error' ? sp.error : '';
+  }
+
+  private onSpotifyTrack(changed: boolean) {
+    const t = this.spotify.track;
+    const card = $('#now-card');
+    card.hidden = !t;
+    if (t) {
+      $<HTMLImageElement>('#now-art').src = t.imageUrl || './icon.svg';
+      $('#now-title').textContent = t.title;
+      $('#now-artist').textContent = t.artists || t.album;
+      card.title = [t.title, t.artists, t.album].filter(Boolean).join('\n');
+    }
+    if (!changed) return;
+
+    this.onEngineChange();
+    const live = this.spotifyTrack();
+    if (live) {
+      this.lastToastLabel = this.engine.label;
+      this.showTrackToast(live.title, live.artists, live.imageUrl);
+    }
+    this.albumRgb = null;
+    this.applyTint();
+    if (t?.imageUrl) {
+      const url = t.imageUrl;
+      void albumColor(url).then((rgb) => {
+        if (this.spotify.track?.imageUrl !== url) return;
+        this.albumRgb = rgb;
+        this.applyTint();
+      });
+    }
+  }
+
+  private applyTint() {
+    const on = this.settings.albumTint && this.spotifyTrack() !== null && this.albumRgb !== null;
+    this.viz?.setTint(on ? this.albumRgb : null);
   }
 
   // ---------- Dialogs ----------
