@@ -123,18 +123,9 @@
           <div class="wmp-body">
             <aside class="taskbar" aria-label="Features">
               <button class="task-item active" data-view="now-playing">Now Playing</button>
-              <button class="task-item" data-feature="guide">Media Guide</button>
-              <button class="task-item" data-feature="cd">Copy from CD</button>
               <button class="task-item" data-view="library">Media Library</button>
               <button class="task-item" data-view="sources">Radio Tuner</button>
-              <button class="task-item" data-feature="burn">Copy to CD or Device</button>
-              <button class="task-item" data-feature="premium">Premium Services</button>
               <button class="task-item" data-view="skins">Skin Chooser</button>
-              <div class="taskbar-spacer"></div>
-              <div class="taskbar-brand">
-                <img src="./icon.svg" alt="" width="34" height="34" />
-                <span>XP Media<br />Visualizer</span>
-              </div>
             </aside>
 
             <section class="stage" id="stage">
@@ -150,7 +141,6 @@
               <div class="stage-views">
                 <div class="view active" data-view="now-playing">
                   <canvas id="vis-canvas"></canvas>
-                  <div class="vis-toast" id="vis-toast"></div>
                   <div class="track-toast" id="track-toast"></div>
                   <div class="start-screen" id="start-screen">
                     <div class="xp-dialog start-dialog">
@@ -308,7 +298,7 @@
           </div>
 
           <div class="transport">
-            <div class="seek" id="seek" role="slider" aria-label="Seek" aria-valuemin="0" aria-valuemax="100" tabindex="0">
+            <div class="seek" id="seek" hidden role="slider" aria-label="Seek" aria-valuemin="0" aria-valuemax="100" tabindex="0">
               <div class="seek-track"><div class="seek-fill" id="seek-fill"></div></div>
               <div class="seek-thumb" id="seek-thumb"></div>
             </div>
@@ -336,7 +326,7 @@
     </main>
 
     <footer class="xp-taskbar">
-      <button class="start-button" data-cmd="start"><img src="./icon.svg" alt="" width="20" height="20" /><span>start</span></button>
+      <button class="start-button" data-cmd="start"><span>start</span></button>
       <div class="tasks">
         <button class="task-button active" id="task-button" data-cmd="task-toggle"><img src="./icon.svg" alt="" width="16" height="16" /><span>XP Media Visualizer</span></button>
       </div>

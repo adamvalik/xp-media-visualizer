@@ -30,13 +30,6 @@ const SOURCE_NAMES: Record<SourceKind, string> = {
   file: 'Audio file',
 };
 
-const FEATURE_TIPS: Record<string, [string, string]> = {
-  guide: ['Media Guide', 'The online Media Guide closed its doors years ago. Your music lives in Spotify now.'],
-  cd: ['Copy from CD', 'No CD drive found. Drop some audio files on the window instead.'],
-  burn: ['Copy to CD or Device', 'Burning CDs is not available in this edition. Nobody owns a Discman anymore anyway.'],
-  premium: ['Premium Services', 'Good news: everything here is free.'],
-};
-
 /** Playlist order: Alchemy first, then every real preset. */
 const PLAYLIST = [RANDOM_DEF, ...PRESETS];
 
@@ -65,7 +58,6 @@ export class App {
   private view: ViewId = 'now-playing';
   private lastToastLabel = '';
   private lastError = '';
-  private visToastTimer = 0;
   private trackToastTimer = 0;
   private idleTimer = 0;
   private seeking = false;
@@ -146,10 +138,6 @@ export class App {
     for (const item of $$('.task-item')) {
       item.addEventListener('click', () => {
         if (item.dataset.view) this.setView(item.dataset.view as ViewId);
-        else if (item.dataset.feature) {
-          const [title, text] = FEATURE_TIPS[item.dataset.feature];
-          this.notify.showBalloon(item, title, text);
-        }
       });
     }
 
@@ -390,9 +378,8 @@ export class App {
     $('#top-info').textContent = this.spotifyLine() || (e.kind && e.state !== 'error' ? e.label : 'Ready');
     $('#pl-source').textContent = e.kind ? `Source: ${e.label}` : 'No source selected';
 
-    const seek = $('#seek');
-    seek.classList.toggle('live', e.isLive && (playing || e.state === 'paused'));
-    seek.classList.toggle('empty', !e.seekable && !seek.classList.contains('live'));
+    // The seek bar only makes sense for files; live sources and Spotify can't be scrubbed.
+    $('#seek').hidden = !e.seekable;
 
     for (const row of $$('.source-row')) row.classList.toggle('current', row.dataset.source === e.kind && e.state !== 'idle');
     this.checkMenuItem('mute', e.muted);
@@ -455,8 +442,6 @@ export class App {
       const pct = `${Math.min(100, (e.elapsed / e.duration) * 100)}%`;
       $('#seek-fill').style.width = pct;
       $('#seek-thumb').style.left = pct;
-    } else if (!e.isLive) {
-      $('#seek-fill').style.width = '0';
     }
   }
 
@@ -483,11 +468,6 @@ export class App {
     $('#btn-shuffle').setAttribute('aria-pressed', String(auto));
     this.checkMenuItem('random', auto);
 
-    const toast = $('#vis-toast');
-    toast.textContent = presetLabel(def);
-    toast.classList.add('show');
-    window.clearTimeout(this.visToastTimer);
-    this.visToastTimer = window.setTimeout(() => toast.classList.remove('show'), 2600);
 
     this.settings.preset = currentId;
     this.save();
@@ -543,7 +523,7 @@ export class App {
       li.className = 'pl-item';
       li.dataset.id = def.id;
       li.title = def.description;
-      li.innerHTML = `<span class="pl-num">${i + 1}</span><span class="pl-name"></span><span class="pl-key">${i < 9 ? i + 1 : ''}</span>`;
+      li.innerHTML = `<span class="pl-num">${i + 1}</span><span class="pl-name"></span>`;
       li.querySelector('.pl-name')!.textContent = presetLabel(def);
       li.addEventListener('click', () => {
         for (const other of $$('.pl-item')) other.classList.toggle('selected', other === li);

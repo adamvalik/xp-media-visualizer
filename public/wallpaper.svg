@@ -1,0 +1,108 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0b47c7"/>
+      <stop offset="0.25" stop-color="#1f62da"/>
+      <stop offset="0.5" stop-color="#4a8ae8"/>
+      <stop offset="0.62" stop-color="#8ab8f0"/>
+      <stop offset="0.7" stop-color="#b9d4f2"/>
+    </linearGradient>
+    <radialGradient id="hill" cx="0.32" cy="0.05" r="0.95">
+      <stop offset="0" stop-color="#a8ec5c"/>
+      <stop offset="0.35" stop-color="#76cc34"/>
+      <stop offset="0.7" stop-color="#3f9a1f"/>
+      <stop offset="1" stop-color="#2a7612"/>
+    </radialGradient>
+    <linearGradient id="shade" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#0a2a00" stop-opacity="0.18"/>
+      <stop offset="0.35" stop-color="#0a2a00" stop-opacity="0"/>
+      <stop offset="0.75" stop-color="#0a2a00" stop-opacity="0.12"/>
+      <stop offset="1" stop-color="#0a2a00" stop-opacity="0.3"/>
+    </linearGradient>
+    <linearGradient id="front" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#4a9a22"/>
+      <stop offset="1" stop-color="#2c6a10"/>
+    </linearGradient>
+    <linearGradient id="far" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#7f9cb8"/>
+      <stop offset="1" stop-color="#a9bccc"/>
+    </linearGradient>
+
+    <!-- Fluffy cumulus: shapes torn by noise, then softened. -->
+    <filter id="cumulus" x="-30%" y="-60%" width="160%" height="220%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.018" numOctaves="4" seed="7" result="noise"/>
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="55" xChannelSelector="R" yChannelSelector="G" result="torn"/>
+      <feGaussianBlur in="torn" stdDeviation="5"/>
+    </filter>
+    <filter id="wisp" x="-20%" y="-200%" width="140%" height="500%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.006 0.04" numOctaves="3" seed="3" result="noise"/>
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="45" xChannelSelector="R" yChannelSelector="G" result="torn"/>
+      <feGaussianBlur in="torn" stdDeviation="7"/>
+    </filter>
+    <!-- Grass grain, clipped to the hills. -->
+    <filter id="grass" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.9 0.25" numOctaves="2" seed="11"/>
+      <feColorMatrix values="0 0 0 0 0.1  0 0 0 0 0.25  0 0 0 0 0  0 0 0 0.22 0"/>
+    </filter>
+    <filter id="soft" filterUnits="userSpaceOnUse" x="-200" y="-200" width="2000" height="1400"><feGaussianBlur stdDeviation="22"/></filter>
+
+    <clipPath id="hillClip">
+      <path id="hillShape" d="M0 668 C 180 610, 360 545, 600 528 C 820 512, 1040 560, 1260 618 C 1400 655, 1520 680, 1600 690 L1600 1000 L0 1000 Z"/>
+    </clipPath>
+  </defs>
+
+  <rect width="1600" height="1000" fill="url(#sky)"/>
+
+  <!-- High wispy cirrus -->
+  <g filter="url(#wisp)" fill="#fff">
+    <ellipse cx="560" cy="120" rx="230" ry="16" opacity="0.55" transform="rotate(-8 560 120)"/>
+    <ellipse cx="900" cy="70" rx="180" ry="12" opacity="0.4" transform="rotate(10 900 70)"/>
+    <ellipse cx="250" cy="250" rx="140" ry="14" opacity="0.5" transform="rotate(-14 250 250)"/>
+    <ellipse cx="1300" cy="200" rx="200" ry="12" opacity="0.35" transform="rotate(6 1300 200)"/>
+  </g>
+
+  <!-- Small puffs higher up -->
+  <g filter="url(#cumulus)" fill="#fff">
+    <ellipse cx="360" cy="180" rx="60" ry="22"/>
+    <ellipse cx="405" cy="170" rx="40" ry="26"/>
+    <ellipse cx="1240" cy="70" rx="110" ry="34"/>
+    <ellipse cx="1300" cy="58" rx="70" ry="34"/>
+    <ellipse cx="690" cy="300" rx="34" ry="14" opacity="0.9"/>
+  </g>
+
+  <!-- Big cumulus bank sitting on the horizon, right of centre -->
+  <g filter="url(#cumulus)">
+    <g fill="#dfe9f6">
+      <ellipse cx="1000" cy="520" rx="260" ry="42"/>
+      <ellipse cx="1300" cy="530" rx="260" ry="40"/>
+    </g>
+    <g fill="#ffffff">
+      <ellipse cx="880" cy="430" rx="80" ry="48"/>
+      <ellipse cx="960" cy="400" rx="90" ry="62"/>
+      <ellipse cx="1060" cy="420" rx="85" ry="55"/>
+      <ellipse cx="1150" cy="395" rx="70" ry="60"/>
+      <ellipse cx="1240" cy="430" rx="95" ry="52"/>
+      <ellipse cx="1360" cy="455" rx="90" ry="40"/>
+      <ellipse cx="760" cy="470" rx="70" ry="30"/>
+      <ellipse cx="560" cy="480" rx="55" ry="22"/>
+      <ellipse cx="1500" cy="470" rx="90" ry="34"/>
+    </g>
+  </g>
+
+  <!-- Distant hazy hills on the right -->
+  <path d="M1080 610 C 1180 560, 1290 548, 1380 566 C 1460 580, 1530 572, 1600 560 L1600 700 L1080 700 Z" fill="url(#far)" opacity="0.9"/>
+
+  <!-- The hill -->
+  <use href="#hillShape" fill="url(#hill)"/>
+  <g clip-path="url(#hillClip)">
+    <rect width="1600" height="1000" fill="url(#shade)"/>
+    <!-- Sun-lit ridge and soft light bands across the slope -->
+    <ellipse cx="560" cy="560" rx="420" ry="40" fill="#c9f07a" opacity="0.35" filter="url(#soft)"/>
+    <path d="M-50 760 C 300 700, 700 690, 1100 760" stroke="#b7e86a" stroke-width="40" fill="none" opacity="0.18" filter="url(#soft)"/>
+    <path d="M200 880 C 600 820, 1000 830, 1650 900" stroke="#173f05" stroke-width="70" fill="none" opacity="0.18" filter="url(#soft)"/>
+    <rect width="1600" height="1000" filter="url(#grass)"/>
+  </g>
+
+  <!-- Darker foreground field -->
+  <path d="M0 930 C 400 905, 900 915, 1600 940 L1600 1000 L0 1000 Z" fill="url(#front)" opacity="0.85"/>
+</svg>
