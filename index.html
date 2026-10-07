@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="en" data-skin="blue">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#0a246a" />
+    <meta name="description" content="A Windows XP Media Player style music visualizer with modern 3D scenes. Listens to your microphone, a browser tab or audio files." />
+    <title>XP Media Visualizer</title>
+    <link rel="icon" href="./icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="./icon-192.png" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+  </head>
+  <body>
+    <svg width="0" height="0" style="position: absolute" aria-hidden="true">
+      <defs>
+        <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5.2v13.6L19 12z" /></symbol>
+        <symbol id="i-pause" viewBox="0 0 24 24"><path d="M6.5 5h4v14h-4zM13.5 5h4v14h-4z" /></symbol>
+        <symbol id="i-stop" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="1.5" /></symbol>
+        <symbol id="i-prev" viewBox="0 0 24 24"><path d="M5.5 6h2.5v12H5.5zM9 12l9.5 6.5V5.5z" /></symbol>
+        <symbol id="i-next" viewBox="0 0 24 24"><path d="M16 6h2.5v12H16zM15 12L5.5 5.5v13z" /></symbol>
+        <symbol id="i-speaker" viewBox="0 0 24 24"><path d="M3.5 9h4l5-4.5v15l-5-4.5h-4z" /><path d="M15.5 8.5a5 5 0 0 1 0 7M18 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" /></symbol>
+        <symbol id="i-muted" viewBox="0 0 24 24"><path d="M3.5 9h4l5-4.5v15l-5-4.5h-4z" /><path d="M15.5 9.5l5 5M20.5 9.5l-5 5" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" /></symbol>
+        <symbol id="i-fullscreen" viewBox="0 0 24 24"><path d="M4 9.5V4h5.5M14.5 4H20v5.5M20 14.5V20h-5.5M9.5 20H4v-5.5" fill="none" stroke="currentColor" stroke-width="2.2" /></symbol>
+        <symbol id="i-shuffle" viewBox="0 0 24 24"><path d="M3 7h3.5l9 10H19M3 17h3.5l2.6-2.9M12.6 9.9L15.5 7H19" fill="none" stroke="currentColor" stroke-width="2" /><path d="M18 4l3.5 3-3.5 3zM18 14l3.5 3-3.5 3z" /></symbol>
+        <symbol id="i-left" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7z" /></symbol>
+        <symbol id="i-right" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7z" /></symbol>
+        <symbol id="i-down" viewBox="0 0 24 24"><path d="M6 9l6 7 6-7z" /></symbol>
+        <symbol id="i-mic" viewBox="0 0 32 32"><rect x="11.5" y="3" width="9" height="16" rx="4.5" fill="#6d93e6" stroke="#1d3c8f" stroke-width="1.5" /><rect x="13.5" y="5" width="2.5" height="8" rx="1.2" fill="#fff" opacity=".55" /><path d="M7.5 14.5a8.5 8.5 0 0 0 17 0M16 23v5M10.5 28.5h11" fill="none" stroke="#1d3c8f" stroke-width="2" stroke-linecap="round" /></symbol>
+        <symbol id="i-tab" viewBox="0 0 32 32"><rect x="2.5" y="5" width="27" height="21" rx="2.5" fill="#fff" stroke="#1d3c8f" stroke-width="1.5" /><path d="M2.5 7.5a2.5 2.5 0 0 1 2.5-2.5h22a2.5 2.5 0 0 1 2.5 2.5V10h-27z" fill="#3a76e8" /><path d="M9 14h3l4-3.5v12L12 19H9z" fill="#1db954" /><path d="M19 13a4 4 0 0 1 0 6M21.5 11a7 7 0 0 1 0 10" fill="none" stroke="#1db954" stroke-width="1.8" stroke-linecap="round" /></symbol>
+        <symbol id="i-note" viewBox="0 0 32 32"><circle cx="16" cy="16" r="13.5" fill="#ffb02e" stroke="#b25a00" stroke-width="1.5" /><path d="M13 21.5V9.5l9-2v11" fill="none" stroke="#fff" stroke-width="2.2" stroke-linejoin="round" /><circle cx="11" cy="21.5" r="2.6" fill="#fff" /><circle cx="20" cy="18.5" r="2.6" fill="#fff" /></symbol>
+        <symbol id="i-folder" viewBox="0 0 32 32"><path d="M2.5 8a2 2 0 0 1 2-2h7l2.5 3h13.5a2 2 0 0 1 2 2v14.5a2 2 0 0 1-2 2h-23a2 2 0 0 1-2-2z" fill="#f8d775" stroke="#b08a26" stroke-width="1.4" /><path d="M2.5 12h27" stroke="#e2b543" stroke-width="1.4" /><path d="M15 23.5v-8l6-1.3v7" fill="none" stroke="#5b4408" stroke-width="1.6" /><circle cx="13.5" cy="23.5" r="1.8" fill="#5b4408" /><circle cx="19.5" cy="21.5" r="1.8" fill="#5b4408" /></symbol>
+      </defs>
+    </svg>
+
+    <main id="desktop" class="desktop">
+      <button class="desktop-icon" data-cmd="window-open" title="Double-click to open">
+        <img src="./icon.svg" alt="" width="40" height="40" />
+        <span>XP Media Visualizer</span>
+      </button>
+
+      <section id="win" class="xp-window" aria-label="XP Media Visualizer">
+        <header class="title-bar">
+          <img class="title-bar-icon" src="./icon.svg" alt="" width="16" height="16" />
+          <div class="title-bar-text">XP Media Visualizer</div>
+          <div class="title-bar-controls">
+            <button class="tb-min" aria-label="Minimize" data-cmd="window-min"></button>
+            <button class="tb-max" aria-label="Maximize" data-cmd="window-max"></button>
+            <button class="tb-close" aria-label="Close" data-cmd="window-close"></button>
+          </div>
+        </header>
+
+        <div class="wmp">
+          <div class="wmp-top">
+            <nav class="menubar" role="menubar">
+              <div class="menu">
+                <button class="menu-title" role="menuitem">File</button>
+                <div class="menu-pop" role="menu">
+                  <button data-cmd="source-file">Open...<span class="kbd">Ctrl+O</span></button>
+                  <button data-cmd="source-mic">Listen to Microphone</button>
+                  <button data-cmd="source-tab">Capture Browser Tab Audio...</button>
+                  <button data-cmd="source-demo">Play Demo Beat</button>
+                  <hr />
+                  <button data-cmd="window-close">Exit</button>
+                </div>
+              </div>
+              <div class="menu">
+                <button class="menu-title" role="menuitem">View</button>
+                <div class="menu-pop" role="menu">
+                  <button data-cmd="view-now-playing">Now Playing</button>
+                  <button data-cmd="view-library">Media Library</button>
+                  <button data-cmd="view-sources">Radio Tuner</button>
+                  <button data-cmd="view-skins">Skin Chooser</button>
+                  <hr />
+                  <div class="submenu">
+                    <button>Visualizations</button>
+                    <div class="menu-pop" id="vis-menu" role="menu"></div>
+                  </div>
+                  <hr />
+                  <button data-cmd="toggle-taskbar" data-check="taskbar">Show Taskbar</button>
+                  <button data-cmd="toggle-playlist" data-check="playlist">Show Playlist</button>
+                  <hr />
+                  <button data-cmd="fullscreen">Full Screen<span class="kbd">F</span></button>
+                </div>
+              </div>
+              <div class="menu">
+                <button class="menu-title" role="menuitem">Play</button>
+                <div class="menu-pop" role="menu">
+                  <button data-cmd="play-pause">Play/Pause<span class="kbd">Space</span></button>
+                  <button data-cmd="stop">Stop<span class="kbd">S</span></button>
+                  <hr />
+                  <button data-cmd="vis-prev">Previous Visualization<span class="kbd">&larr;</span></button>
+                  <button data-cmd="vis-next">Next Visualization<span class="kbd">&rarr;</span></button>
+                  <button data-cmd="vis-random" data-check="random">Shuffle Visualizations<span class="kbd">R</span></button>
+                  <hr />
+                  <button data-cmd="mute" data-check="mute">Mute<span class="kbd">M</span></button>
+                </div>
+              </div>
+              <div class="menu">
+                <button class="menu-title" role="menuitem">Tools</button>
+                <div class="menu-pop" role="menu">
+                  <button data-cmd="view-sources">Audio Source &amp; Sensitivity...</button>
+                  <button data-cmd="view-skins">Skins...</button>
+                  <button data-cmd="install" id="install-item" hidden>Install as App...</button>
+                </div>
+              </div>
+              <div class="menu">
+                <button class="menu-title" role="menuitem">Help</button>
+                <div class="menu-pop" role="menu">
+                  <button data-cmd="shortcuts">Keyboard Shortcuts</button>
+                  <button data-cmd="spotify-help">Using with Spotify</button>
+                  <hr />
+                  <button data-cmd="about">About XP Media Visualizer</button>
+                </div>
+              </div>
+            </nav>
+            <div class="top-info" id="top-info">Ready</div>
+          </div>
+
+          <div class="wmp-body">
+            <aside class="taskbar" aria-label="Features">
+              <button class="task-item active" data-view="now-playing">Now Playing</button>
+              <button class="task-item" data-feature="guide">Media Guide</button>
+              <button class="task-item" data-feature="cd">Copy from CD</button>
+              <button class="task-item" data-view="library">Media Library</button>
+              <button class="task-item" data-view="sources">Radio Tuner</button>
+              <button class="task-item" data-feature="burn">Copy to CD or Device</button>
+              <button class="task-item" data-feature="premium">Premium Services</button>
+              <button class="task-item" data-view="skins">Skin Chooser</button>
+              <div class="taskbar-spacer"></div>
+              <div class="taskbar-brand">
+                <img src="./icon.svg" alt="" width="34" height="34" />
+                <span>XP Media<br />Visualizer</span>
+              </div>
+            </aside>
+
+            <section class="stage" id="stage">
+              <div class="stage-head">
+                <button class="icon-btn" data-cmd="vis-prev" title="Previous visualization (Left arrow)"><svg><use href="#i-left" /></svg></button>
+                <button class="icon-btn" data-cmd="vis-next" title="Next visualization (Right arrow)"><svg><use href="#i-right" /></svg></button>
+                <button class="vis-name" id="vis-name" title="Choose a visualization">Bars and Waves : Bars</button>
+                <div class="stage-head-spacer"></div>
+                <span class="view-title" id="view-title">Now Playing</span>
+                <button class="icon-btn" data-cmd="fullscreen" title="Full screen (F)"><svg><use href="#i-fullscreen" /></svg></button>
+              </div>
+
+              <div class="stage-views">
+                <div class="view active" data-view="now-playing">
+                  <canvas id="vis-canvas"></canvas>
+                  <div class="vis-toast" id="vis-toast"></div>
+                  <div class="track-toast" id="track-toast"></div>
+                  <div class="start-screen" id="start-screen">
+                    <div class="xp-dialog start-dialog">
+                      <div class="title-bar small">
+                        <div class="title-bar-text">Welcome</div>
+                      </div>
+                      <div class="dialog-body">
+                        <h2>What should the visualizer listen to?</h2>
+                        <div class="option-grid">
+                          <button class="option-btn" data-cmd="source-mic">
+                            <svg><use href="#i-mic" /></svg>
+                            <b>Microphone</b>
+                            <small>Play Spotify (or anything) out loud near your computer.</small>
+                          </button>
+                          <button class="option-btn" data-cmd="source-tab" data-needs="tab">
+                            <svg><use href="#i-tab" /></svg>
+                            <b>Browser tab audio</b>
+                            <small>Cleanest signal: Spotify Web Player in a Chrome tab.</small>
+                          </button>
+                          <button class="option-btn" data-cmd="source-demo">
+                            <svg><use href="#i-note" /></svg>
+                            <b>Demo beat</b>
+                            <small>A built-in synth groove, no setup needed.</small>
+                          </button>
+                          <button class="option-btn" data-cmd="source-file">
+                            <svg><use href="#i-folder" /></svg>
+                            <b>Audio files</b>
+                            <small>Open or drop MP3, WAV, FLAC, M4A...</small>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="fs-bar" id="fs-bar">
+                    <button class="t-btn" data-cmd="vis-prev" title="Previous visualization"><svg><use href="#i-left" /></svg></button>
+                    <button class="t-btn play" data-cmd="play-pause" title="Play/Pause"><svg><use href="#i-play" /></svg></button>
+                    <button class="t-btn" data-cmd="vis-next" title="Next visualization"><svg><use href="#i-right" /></svg></button>
+                    <span class="fs-label" id="fs-label"></span>
+                    <button class="t-btn" data-cmd="fullscreen" title="Exit full screen (Esc)"><svg><use href="#i-fullscreen" /></svg></button>
+                  </div>
+                  <div class="drop-hint" id="drop-hint"><span>Drop audio files to play them</span></div>
+                </div>
+
+                <div class="view panel-view" data-view="library">
+                  <div class="panel-header">
+                    <h1>Media Library</h1>
+                    <p>Visualizations installed on this computer. Click one to start it.</p>
+                  </div>
+                  <div id="library-list" class="library"></div>
+                </div>
+
+                <div class="view panel-view" data-view="sources">
+                  <div class="panel-header">
+                    <h1>Radio Tuner</h1>
+                    <p>Choose where the sound comes from. Nothing is recorded or sent anywhere; audio is analysed live in this window.</p>
+                  </div>
+                  <div class="source-list">
+                    <button class="source-row" data-cmd="source-mic" data-source="mic">
+                      <svg><use href="#i-mic" /></svg>
+                      <span><b>Microphone</b><small>Works with the Spotify desktop app, a phone, a record player... anything you can hear.</small></span>
+                    </button>
+                    <button class="source-row" data-cmd="source-tab" data-source="tab" data-needs="tab">
+                      <svg><use href="#i-tab" /></svg>
+                      <span><b>Browser tab audio</b><small>Open open.spotify.com in another Chrome or Edge tab, pick it here and tick "Share tab audio".</small></span>
+                    </button>
+                    <button class="source-row" data-cmd="source-demo" data-source="demo">
+                      <svg><use href="#i-note" /></svg>
+                      <span><b>Demo beat</b><small>A small synth groove generated in your browser.</small></span>
+                    </button>
+                    <button class="source-row" data-cmd="source-file" data-source="file">
+                      <svg><use href="#i-folder" /></svg>
+                      <span><b>Audio files</b><small>Play local files. You can also drag them onto the window.</small></span>
+                    </button>
+                  </div>
+                  <fieldset class="group-box">
+                    <legend>Microphone</legend>
+                    <label class="field">
+                      <span>Input device</span>
+                      <select id="mic-select" class="xp-select"><option value="">Default microphone</option></select>
+                    </label>
+                    <label class="field">
+                      <span>Sensitivity</span>
+                      <input id="sensitivity" class="xp-range" type="range" min="-12" max="30" step="1" value="0" />
+                      <output id="sensitivity-out">0 dB</output>
+                    </label>
+                    <div class="field">
+                      <span>Input level</span>
+                      <canvas id="source-meter" class="meter-canvas" width="300" height="14"></canvas>
+                    </div>
+                    <p class="hint">Tip: on a Mac you can route the Spotify app straight into the visualizer with a free loopback driver such as BlackHole, then pick it as the input device above.</p>
+                  </fieldset>
+                </div>
+
+                <div class="view panel-view" data-view="skins">
+                  <div class="panel-header">
+                    <h1>Skin Chooser</h1>
+                    <p>Pick a color scheme. Your choice is remembered.</p>
+                  </div>
+                  <div class="skin-grid" id="skin-grid"></div>
+                </div>
+              </div>
+            </section>
+
+            <aside class="playlist" aria-label="Playlist">
+              <div class="playlist-head">
+                <div class="combo"><span>Visualizations</span><svg><use href="#i-down" /></svg></div>
+              </div>
+              <ol class="pl-list" id="pl-list"></ol>
+              <div class="pl-foot">
+                <div class="pl-source" id="pl-source">No source</div>
+                <canvas id="mini-spectrum" class="mini-spectrum" width="220" height="44"></canvas>
+              </div>
+            </aside>
+          </div>
+
+          <div class="transport">
+            <div class="seek" id="seek" role="slider" aria-label="Seek" aria-valuemin="0" aria-valuemax="100" tabindex="0">
+              <div class="seek-track"><div class="seek-fill" id="seek-fill"></div></div>
+              <div class="seek-thumb" id="seek-thumb"></div>
+            </div>
+            <div class="controls">
+              <button class="t-btn play" id="btn-play" data-cmd="play-pause" title="Play"><svg><use href="#i-play" /></svg></button>
+              <button class="t-btn" data-cmd="stop" title="Stop"><svg><use href="#i-stop" /></svg></button>
+              <button class="t-btn" data-cmd="prev" title="Previous"><svg><use href="#i-prev" /></svg></button>
+              <button class="t-btn" data-cmd="next" title="Next"><svg><use href="#i-next" /></svg></button>
+              <span class="divider"></span>
+              <button class="t-btn" id="btn-mute" data-cmd="mute" title="Mute"><svg><use href="#i-speaker" /></svg></button>
+              <input id="volume" class="xp-range volume" type="range" min="0" max="100" value="80" aria-label="Volume" />
+              <span class="divider"></span>
+              <button class="t-btn" id="btn-shuffle" data-cmd="vis-random" title="Shuffle visualizations" aria-pressed="false"><svg><use href="#i-shuffle" /></svg></button>
+              <button class="t-btn" data-cmd="fullscreen" title="Full screen"><svg><use href="#i-fullscreen" /></svg></button>
+              <div class="lcd">
+                <span class="lcd-status" id="lcd-status">Ready</span>
+                <span class="lcd-time" id="lcd-time">00:00</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="resize-grip" aria-hidden="true"></div>
+      </section>
+    </main>
+
+    <footer class="xp-taskbar">
+      <button class="start-button" data-cmd="start"><img src="./icon.svg" alt="" width="20" height="20" /><span>start</span></button>
+      <div class="tasks">
+        <button class="task-button active" id="task-button" data-cmd="task-toggle"><img src="./icon.svg" alt="" width="16" height="16" /><span>XP Media Visualizer</span></button>
+      </div>
+      <div class="tray">
+        <svg class="tray-icon" id="tray-volume" data-cmd="mute"><use href="#i-speaker" /></svg>
+        <time id="clock">12:00 PM</time>
+      </div>
+    </footer>
+
+    <div class="balloon" id="balloon" role="status" hidden>
+      <button class="balloon-close" aria-label="Close">&times;</button>
+      <b id="balloon-title"></b>
+      <div id="balloon-text"></div>
+    </div>
+
+    <dialog class="xp-dialog modal" id="modal">
+      <div class="title-bar small">
+        <div class="title-bar-text" id="modal-title"></div>
+        <div class="title-bar-controls">
+          <button class="tb-close" aria-label="Close" data-close></button>
+        </div>
+      </div>
+      <div class="dialog-body" id="modal-body"></div>
+      <div class="dialog-actions"><button class="xp-btn" data-close autofocus>OK</button></div>
+    </dialog>
+
+    <input type="file" id="file-input" accept="audio/*,.mp3,.wav,.ogg,.flac,.m4a,.aac,.opus" multiple hidden />
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
