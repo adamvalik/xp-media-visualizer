@@ -635,8 +635,27 @@ export class App {
   // ---------- Meters ----------
 
   private onFrame(frame: AudioFrame) {
+    this.drawTempo(frame);
     if (this.settings.showPlaylist && this.view !== 'skins') this.drawMiniSpectrum(frame);
     if (this.view === 'sources') this.drawSourceMeter(frame);
+  }
+
+  private shownBpm = -1;
+
+  private drawTempo(frame: AudioFrame) {
+    const t = frame.tempo;
+    const bpm = t.locked ? Math.round(t.bpm) : 0;
+    if (bpm !== this.shownBpm) {
+      this.shownBpm = bpm;
+      $('#lcd-bpm').hidden = bpm === 0;
+      $('#lcd-bpm-value').textContent = String(bpm);
+    }
+    if (bpm) {
+      const glow = Math.pow(1 - t.beatPhase, 3);
+      const dot = $('#lcd-beat');
+      dot.style.opacity = String(0.25 + 0.75 * glow);
+      dot.classList.toggle('bar', t.barPhase < 0.25);
+    }
   }
 
   private drawMiniSpectrum(frame: AudioFrame) {

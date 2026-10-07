@@ -111,7 +111,7 @@ export class TunnelPreset extends ScenePreset {
 
   protected animate(frame: AudioFrame, dt: number, t: number) {
     this.history.update(frame.spectrum, dt);
-    if (frame.onset) this.kick += 0.5;
+    if (frame.hit) this.kick += frame.tempo.downbeat ? 0.8 : 0.4;
     this.kick *= Math.exp(-dt * 3);
     this.roll += dt * (0.12 + frame.mid * 0.3) + this.kick * dt * 2;
     this.material.uniforms.uTwist.value = t * 0.05;

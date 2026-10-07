@@ -51,6 +51,15 @@ Login uses the Authorization Code flow with PKCE, entirely in the browser; there
 secret. Apps in Spotify's development mode only work for accounts you add under *User Management* in the
 dashboard.
 
+## Tempo sync
+
+A beat tracker estimates the tempo (70 to 180 BPM) and where the beats fall, usually within a few seconds of
+music starting. Once it is confident, every scene's beat pulse follows that steady grid instead of single
+kicks, so accents keep landing in time through breaks and fills. Alchemy changes scenes on a bar line after 8
+or 16 bars with a crossfade two beats long, and the Battery scenes shift color on each bar. The display shows
+the detected BPM with a dot that pulses on every beat (yellow on the first beat of the bar). With no clear beat
+(ambient music, speech) everything falls back to reacting to the sound directly.
+
 ## Visualizations
 
 | Collection | Name | What it does |
@@ -103,6 +112,7 @@ src/
   audio/
     AudioEngine.ts   sources (mic, tab capture, files, demo) feeding one AnalyserNode
     analysis.ts      128 log bands, auto gain, falling peaks, beat detection, aligned waveform
+    tempo.ts         BPM via autocorrelation, beat phase locked to kicks, bar/downbeat tracking
     DemoSynth.ts     small Web Audio groove for trying it without a mic
   viz/
     Visualizer.ts    render loop, crossfades, bloom + finishing pass, Alchemy mode, adaptive resolution

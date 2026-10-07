@@ -152,6 +152,9 @@ export class Visualizer extends EventTarget {
   private autoMode = false;
   private autoTimer = 0;
   private autoLimit = AUTO_MAX_SECONDS;
+  private barsSinceSwitch = 0;
+  private transitionSeconds = TRANSITION_SECONDS;
+  private lastFrame: AudioFrame | null = null;
   private cssWidth = 0;
   private cssHeight = 0;
   private pixelRatio: number;
@@ -224,11 +227,15 @@ export class Visualizer extends EventTarget {
     if (!def) return;
     if (!auto) this.autoMode = false;
     this.autoTimer = 0;
+    this.barsSinceSwitch = 0;
     if (id !== this.currentId) {
       this.instance(def);
       if (this.currentId) {
         this.previousId = this.currentId;
         this.transition = 0;
+        // With a tempo lock, crossfade over two beats so the new scene arrives in time.
+        const tempo = this.lastFrame?.tempo;
+        this.transitionSeconds = tempo?.locked ? Math.min(Math.max((60 / tempo.bpm) * 2, 0.6), 2) : TRANSITION_SECONDS;
       }
       this.currentId = id;
     }
@@ -253,6 +260,7 @@ export class Visualizer extends EventTarget {
   setAuto(on: boolean) {
     this.autoMode = on;
     this.autoTimer = 0;
+    this.barsSinceSwitch = 0;
     if (on) this.randomize();
     else {
       const def = PRESETS.find((p) => p.id === this.currentId);
@@ -317,11 +325,19 @@ export class Visualizer extends EventTarget {
     if (!this.renderEnabled || !this.currentId || this.cssWidth < 2) return;
 
     this.textures.update(frame);
+    this.lastFrame = frame;
 
     if (this.autoMode) {
       this.autoTimer += dt;
-      const onBeat = frame.onset && this.autoTimer > AUTO_MIN_SECONDS && Math.random() < 0.2;
-      if (onBeat || this.autoTimer > this.autoLimit) this.randomize();
+      if (frame.tempo.locked) {
+        // Switch on a bar line after 8 or 16 bars, like a DJ changing phrase.
+        if (frame.tempo.downbeat) this.barsSinceSwitch++;
+        const phraseEnd = frame.tempo.downbeat && this.autoTimer > AUTO_MIN_SECONDS / 2;
+        if (phraseEnd && ((this.barsSinceSwitch >= 8 && Math.random() < 0.4) || this.barsSinceSwitch >= 16)) this.randomize();
+      } else {
+        const onBeat = frame.onset && this.autoTimer > AUTO_MIN_SECONDS && Math.random() < 0.2;
+        if (onBeat || this.autoTimer > this.autoLimit) this.randomize();
+      }
     }
 
     const current = this.instances.get(this.currentId)!;
@@ -329,7 +345,7 @@ export class Visualizer extends EventTarget {
 
     let previous: Preset | null = null;
     if (this.previousId) {
-      this.transition += dt / TRANSITION_SECONDS;
+      this.transition += dt / this.transitionSeconds;
       if (this.transition >= 1) this.previousId = null;
       else {
         previous = this.instances.get(this.previousId) ?? null;

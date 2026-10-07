@@ -1,3 +1,5 @@
+import { TempoTracker, type TempoState } from './tempo';
+
 /**
  * Turns raw AnalyserNode data into stable, visual-friendly features:
  * log-spaced bands with automatic gain, falling peaks, a phase-aligned
@@ -28,10 +30,17 @@ export interface AudioFrame {
   mid: number;
   treble: number;
   level: number;
-  /** Decaying pulse that jumps to 1 on every detected beat. */
+  /**
+   * Decaying pulse that jumps to 1 on every beat. Follows the tempo grid when
+   * it is locked, otherwise raw bass onsets.
+   */
   beat: number;
-  /** True only on the frame a beat is detected. */
+  /** True only on the frame a bass onset is detected. */
   onset: boolean;
+  /** True on the frame to accent: a grid beat when locked, otherwise an onset. */
+  hit: boolean;
+  /** Tempo, beat and bar phase from the beat tracker. */
+  tempo: TempoState;
   /** 0 when the input is silent, 1 when there is a healthy signal. */
   presence: number;
 }
@@ -51,6 +60,8 @@ export const approach = (current: number, target: number, rate: number, dt: numb
   current + (target - current) * (1 - Math.exp(-rate * dt));
 
 export class AudioAnalysis {
+  private readonly tempo = new TempoTracker();
+
   readonly frame: AudioFrame = {
     spectrum: new Float32Array(BANDS),
     peaks: new Float32Array(BANDS),
@@ -61,8 +72,11 @@ export class AudioAnalysis {
     level: 0,
     beat: 0,
     onset: false,
+    hit: false,
+    tempo: this.tempo.state,
     presence: 0,
   };
+  private readonly prevNorm = new Float32Array(BANDS);
 
   /** User sensitivity in dB, added to the input before gating. */
   gainDb = 0;
@@ -120,6 +134,14 @@ export class AudioAnalysis {
     f.presence = approach(f.presence, presenceTarget, presenceTarget > f.presence ? 8 : 1.5, dt);
 
     const bottom = this.ref + 3 - RANGE_DB;
+    // Onset strength for the tempo tracker: positive change of the unsmoothed bands, lows weighted up.
+    let flux = 0;
+    for (let b = 0; b < BANDS; b++) {
+      const norm = clamp01((this.raw[b] - bottom) / RANGE_DB) * f.presence;
+      const rise = norm - this.prevNorm[b];
+      if (rise > 0) flux += rise * (BAND_HZ[b] < 200 ? 2 : 1);
+      this.prevNorm[b] = norm;
+    }
     let bassSum = 0, bassN = 0, midSum = 0, midN = 0, trebleSum = 0, trebleN = 0, all = 0;
     for (let b = 0; b < BANDS; b++) {
       const v = Math.pow(clamp01((this.raw[b] - bottom) / RANGE_DB), 1.5) * f.presence;
@@ -146,6 +168,10 @@ export class AudioAnalysis {
     f.level = approach(f.level, clamp01((all / BANDS) * 1.6), 12, dt);
 
     this.detectBeat(dt);
+    f.tempo = this.tempo.update(flux / BANDS, f.bass, f.presence, f.onset, dt);
+    // When the grid is locked, beats come from it (steady, on time, even through fills).
+    f.hit = f.tempo.locked ? f.tempo.tick : f.onset;
+    if (f.tempo.locked && f.tempo.tick) f.beat = 1;
     this.alignWaveform(dt);
     return f;
   }
@@ -193,7 +219,7 @@ export class AudioAnalysis {
     const rising = energy > this.lastBass;
     if (this.armed && rising && energy > this.slowBass * 1.45 + 0.004 && this.sinceBeat > 0.26 && f.presence > 0.25) {
       f.onset = true;
-      f.beat = 1;
+      if (!this.tempo.state.locked) f.beat = 1;
       this.sinceBeat = 0;
       this.armed = false;
     } else if (!this.armed && energy < this.slowBass * 1.1) {

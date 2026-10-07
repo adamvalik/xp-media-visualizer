@@ -6,8 +6,9 @@ Possible next steps, roughly in order of impact.
 
 1. **Song info from Spotify.** ~~Show the real track title and artist like WMP's "Now Playing" overlay, and tint
    the scenes with the album art colors.~~ Done: see *Spotify: song info* in Radio Tuner.
-2. **Tempo detection.** Estimate BPM and beat phase so camera moves, color shifts and Alchemy switches land on
-   the actual beat grid instead of reacting to single onsets.
+2. **Tempo detection.** ~~Estimate BPM and beat phase so camera moves, color shifts and Alchemy switches land on
+   the actual beat grid instead of reacting to single onsets.~~ Done: see `src/audio/tempo.ts`; the BPM shows
+   in the player's display.
 3. **Song-section detection.** Track energy over longer windows to recognise build-ups and drops, then trigger
    bigger moments: a camera dive, a color flash, or a scene change exactly on the drop.
 

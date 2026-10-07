@@ -1933,3 +1933,36 @@ dialog.modal::backdrop {
     min-width: 0;
   }
 }
+
+/* Tempo readout in the LCD */
+.lcd-bpm {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.9;
+}
+
+.lcd-bpm[hidden] {
+  display: none;
+}
+
+.lcd-bpm i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 6px currentColor;
+}
+
+.lcd-bpm i.bar {
+  background: #ffd84d;
+  color: #ffd84d;
+}
+
+@media (max-width: 420px) {
+  .lcd-bpm {
+    display: none;
+  }
+}

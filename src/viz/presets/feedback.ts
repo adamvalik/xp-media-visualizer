@@ -169,7 +169,7 @@ export class FeedbackPreset implements Preset {
   update(frame: AudioFrame, dt: number, time: number) {
     applyAudio(this.u, frame, time);
     this.dt = dt;
-    this.hueOffset += dt * (0.03 + frame.treble * 0.05) + (frame.onset ? 0.08 : 0);
+    this.hueOffset += dt * (0.03 + frame.treble * 0.05) + (frame.tempo.downbeat ? 0.12 : frame.hit ? 0.05 : 0);
   }
 
   render(renderer: THREE.WebGLRenderer, target: THREE.WebGLRenderTarget) {
