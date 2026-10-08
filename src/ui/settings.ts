@@ -32,6 +32,8 @@ export interface Settings {
   fullscreenTrack: boolean;
   /** Low-res, 16-bit, flat 2D rendering like the original visualizations. */
   classicMode: boolean;
+  /** Flash, zoom and scene changes on drops and new sections (song-section detection). */
+  sectionFx: boolean;
   /** WMP "skin mode": the compact player instead of the full window. */
   skinMode: boolean;
   /** Start Alchemy in full screen after `screensaverMinutes` without input while music plays. */
@@ -55,6 +57,7 @@ const DEFAULTS: Settings = {
   albumTint: true,
   fullscreenTrack: true,
   classicMode: false,
+  sectionFx: true,
   skinMode: false,
   screensaver: true,
   screensaverMinutes: 5,

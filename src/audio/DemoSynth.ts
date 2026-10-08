@@ -1,12 +1,15 @@
 /**
  * A tiny Web Audio groove so the visualizer can be tried without a
  * microphone: four-on-the-floor kick, claps, hats, an off-beat bass,
- * pads and an arpeggio over Am, F, C, G.
+ * pads and an arpeggio over Am, F, C, G. After 16 bars comes an 8-bar
+ * breakdown with a riser and a snare roll, then it drops back in.
  */
 
 const BPM = 118;
 const STEP = 60 / BPM / 4; // sixteenth note
-const LOOP_STEPS = 16 * 8;
+const FULL_BARS = 16;
+const BREAKDOWN_BARS = 8;
+const LOOP_STEPS = 16 * (FULL_BARS + BREAKDOWN_BARS);
 
 const CHORDS = [
   [57, 60, 64], // Am
@@ -71,10 +74,16 @@ export class DemoSynth {
   }
 
   private playStep(step: number, t: number) {
-    const bar = Math.floor(step / 16) % 4;
+    const barIndex = Math.floor(step / 16);
+    const bar = barIndex % 4;
     const s = step % 16;
-    const secondHalf = step >= 64;
     const chord = CHORDS[bar];
+    if (barIndex >= FULL_BARS) {
+      this.playBreakdown(barIndex - FULL_BARS, s, chord, t);
+      return;
+    }
+    const secondHalf = barIndex % 8 >= 4;
+    if (step === 0) this.impact(t);
 
     if (s % 4 === 0) this.kick(t);
     if (s === 4 || s === 12) this.clap(t);
@@ -85,6 +94,19 @@ export class DemoSynth {
     if (secondHalf || s % 2 === 0) {
       const note = chord[s % 3] + 12 + (s % 8 >= 4 ? 12 : 0);
       this.pluck(mtof(note), t);
+    }
+  }
+
+  private playBreakdown(b: number, s: number, chord: number[], t: number) {
+    if (s === 0) this.pad(chord, t, STEP * 16);
+    if (s % 2 === 0) this.pluck(mtof(chord[s % 3] + 12 + (s % 8 >= 4 ? 12 : 0)), t);
+    if (b < 4 && s % 4 === 2) this.hat(t, false);
+    // Last four bars: riser and a snare roll that doubles up towards the drop.
+    if (b === 4 && s === 0) this.riser(t, STEP * 16 * 4);
+    if (b >= 4) {
+      const every = b < 6 ? 4 : b === 6 ? 2 : 1;
+      const progress = (b - 4 + s / 16) / 4;
+      if (s % every === 0) this.roll(t, 0.12 + progress * 0.4);
     }
   }
 
@@ -129,6 +151,41 @@ export class DemoSynth {
     tone.connect(g).connect(this.bus);
     tone.start(t);
     tone.stop(t + 0.15);
+  }
+
+  private roll(t: number, peak: number) {
+    const bp = this.ctx.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.frequency.value = 2200;
+    bp.Q.value = 0.8;
+    this.noiseHit(t, bp, peak, 0.09);
+  }
+
+  /** Noise swelling up through a rising high-pass filter. */
+  private riser(t: number, length: number) {
+    const src = this.ctx.createBufferSource();
+    src.buffer = this.noise;
+    src.loop = true;
+    const hp = this.ctx.createBiquadFilter();
+    hp.type = 'highpass';
+    hp.Q.value = 4;
+    hp.frequency.setValueAtTime(300, t);
+    hp.frequency.exponentialRampToValueAtTime(7000, t + length);
+    const g = this.ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.22, t + length);
+    g.gain.linearRampToValueAtTime(0.0001, t + length + 0.05);
+    src.connect(hp).connect(g).connect(this.bus);
+    src.start(t);
+    src.stop(t + length + 0.1);
+  }
+
+  /** Crash on the downbeat where the groove comes back. */
+  private impact(t: number) {
+    const hp = this.ctx.createBiquadFilter();
+    hp.type = 'highpass';
+    hp.frequency.value = 3500;
+    this.noiseHit(t, hp, 0.3, 0.45); // the noise buffer is only 1 s long
   }
 
   private hat(t: number, open: boolean) {

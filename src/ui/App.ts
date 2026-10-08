@@ -235,6 +235,17 @@ export class App {
             : 'Back to the modern 3D scenes.',
           4,
         );
+      case 'toggle-sections':
+        this.settings.sectionFx = !this.settings.sectionFx;
+        this.applyLayout();
+        return this.notify.showBalloon(
+          $('#vis-name'),
+          this.settings.sectionFx ? 'React to Drops on' : 'React to Drops off',
+          this.settings.sectionFx
+            ? 'Breakdowns build tension, drops flash and punch in, and Alchemy changes scene on them.'
+            : 'The visuals follow the beat only, without guessing where the song is going.',
+          4,
+        );
       case 'toggle-fs-track':
         this.settings.fullscreenTrack = !this.settings.fullscreenTrack;
         return this.applyLayout();
@@ -641,6 +652,8 @@ export class App {
     this.stage.classList.toggle('pin-track', this.settings.fullscreenTrack);
     this.viz?.setClassic(this.settings.classicMode);
     this.checkMenuItem('classic', this.settings.classicMode);
+    this.viz?.setSectionFx(this.settings.sectionFx);
+    this.checkMenuItem('sections', this.settings.sectionFx);
     this.checkMenuItem('fs-track', this.settings.fullscreenTrack);
     $<HTMLInputElement>('#fs-track').checked = this.settings.fullscreenTrack;
     this.save();
@@ -670,6 +683,7 @@ export class App {
 
   private onFrame(frame: AudioFrame) {
     this.drawTempo(frame);
+    this.drawSection(frame);
     if (this.settings.showPlaylist && this.view !== 'skins') this.drawMiniSpectrum(frame);
     if (this.view === 'sources') this.drawSourceMeter(frame);
   }
@@ -690,6 +704,31 @@ export class App {
       dot.style.opacity = String(0.25 + 0.75 * glow);
       dot.classList.toggle('bar', t.barPhase < 0.25);
     }
+  }
+
+  private shownSection = '';
+  private dropShownUntil = 0;
+
+  /** BUILD / DROP tag in the display, so it's easy to judge how well the detection works. */
+  private drawSection(frame: AudioFrame) {
+    const s = frame.section;
+    const now = performance.now();
+    if (s.drop) this.dropShownUntil = now + 2500;
+    let text = '';
+    if (this.settings.sectionFx) {
+      if (now < this.dropShownUntil) text = 'DROP';
+      else if (s.breakdown) text = 'BUILD';
+    }
+    const tag = $('#lcd-section');
+    if (text !== this.shownSection) {
+      this.shownSection = text;
+      tag.hidden = !text;
+      tag.textContent = text;
+      tag.classList.toggle('drop', text === 'DROP');
+      tag.title = text === 'DROP' ? 'Drop detected' : 'Breakdown: building towards a drop';
+    }
+    if (text === 'BUILD') tag.style.opacity = String(0.45 + 0.55 * s.build);
+    else tag.style.opacity = '';
   }
 
   private drawMiniSpectrum(frame: AudioFrame) {
@@ -795,6 +834,9 @@ export class App {
           break;
         case 'c':
           this.run('toggle-classic');
+          break;
+        case 'd':
+          this.run('toggle-sections');
           break;
         case 'ArrowUp':
           e.preventDefault();
@@ -1125,6 +1167,7 @@ export class App {
       ['M', 'Mute'],
       ['I', 'Show the song title in full screen'],
       ['C', 'Classic Mode (2003 look)'],
+      ['D', 'React to drops and new sections'],
       ['Ctrl+1 / Ctrl+2', 'Full mode / skin mode'],
       ['Up / Down', 'Volume (files and demo)'],
       ['Ctrl+O', 'Open audio files'],

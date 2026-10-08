@@ -90,6 +90,7 @@
                   <hr />
                   <button data-cmd="fullscreen">Full Screen<span class="kbd">F</span></button>
                   <button data-cmd="toggle-classic" data-check="classic">Classic Mode<span class="kbd">C</span></button>
+                  <button data-cmd="toggle-sections" data-check="sections">React to Drops<span class="kbd">D</span></button>
                   <button data-cmd="toggle-fs-track" data-check="fs-track">Show Song in Full Screen<span class="kbd">I</span></button>
                 </div>
               </div>
@@ -328,6 +329,7 @@
               <button class="t-btn" data-cmd="fullscreen" title="Full screen"><svg><use href="#i-fullscreen" /></svg></button>
               <div class="lcd">
                 <span class="lcd-status" id="lcd-status">Ready</span>
+                <span class="lcd-section" id="lcd-section" hidden></span>
                 <span class="lcd-bpm" id="lcd-bpm" title="Detected tempo" hidden><i id="lcd-beat"></i><span id="lcd-bpm-value"></span> BPM</span>
                 <span class="lcd-time" id="lcd-time">00:00</span>
               </div>

@@ -15,6 +15,8 @@ import type { Preset, PresetDef } from './types';
 const TRANSITION_SECONDS = 1.8;
 const AUTO_MIN_SECONDS = 16;
 const AUTO_MAX_SECONDS = 32;
+/** A drop slams the next Alchemy scene in instead of crossfading. */
+const DROP_TRANSITION_SECONDS = 0.15;
 
 /** Renders the active preset (and the outgoing one during a crossfade) into the composer. */
 class PresetPass extends Pass {
@@ -81,7 +83,10 @@ class PresetPass extends Pass {
   }
 }
 
-/** Vignette, beat-driven chromatic aberration, film grain and an optional colour tint (album art). */
+/**
+ * Vignette, beat-driven chromatic aberration, film grain, an optional colour tint (album art), and the
+ * zoom punch and flash for drops.
+ */
 const FinishShader = {
   name: 'FinishShader',
   uniforms: {
@@ -92,6 +97,8 @@ const FinishShader = {
     uGrain: { value: 0.01 },
     uTint: { value: new THREE.Vector3(1, 1, 1) },
     uTintAmount: { value: 0 },
+    uZoom: { value: 1 },
+    uFlash: { value: 0 },
   },
   vertexShader: /* glsl */ `
     varying vec2 vUv;
@@ -108,15 +115,18 @@ const FinishShader = {
     uniform float uGrain;
     uniform vec3 uTint;
     uniform float uTintAmount;
+    uniform float uZoom;
+    uniform float uFlash;
     varying vec2 vUv;
     void main() {
+      vec2 uv = (vUv - 0.5) * uZoom + 0.5;
       vec2 c = vUv - 0.5;
       float r2 = dot(c, c);
       vec2 off = c * r2 * uAberration;
       vec3 col = vec3(
-        texture2D(tDiffuse, vUv + off).r,
-        texture2D(tDiffuse, vUv).g,
-        texture2D(tDiffuse, vUv - off).b
+        texture2D(tDiffuse, uv + off).r,
+        texture2D(tDiffuse, uv).g,
+        texture2D(tDiffuse, uv - off).b
       );
       // Re-colour towards the tint while keeping brightness, so scenes keep their contrast.
       const vec3 LUMA = vec3(0.2126, 0.7152, 0.0722);
@@ -125,6 +135,7 @@ const FinishShader = {
       col *= 1.0 - uVignette * r2 * 1.8;
       float n = fract(sin(dot(vUv * 1000.0 + fract(uTime) * 100.0, vec2(12.9898, 78.233))) * 43758.5453);
       col += (n - 0.5) * uGrain;
+      col += vec3(1.0, 0.96, 0.9) * uFlash;
       gl_FragColor = vec4(max(col, 0.0), 1.0);
     }
   `,
@@ -194,6 +205,11 @@ export class Visualizer extends EventTarget {
   private autoLimit = AUTO_MAX_SECONDS;
   private barsSinceSwitch = 0;
   private transitionSeconds = TRANSITION_SECONDS;
+  private nextTransitionSeconds: number | null = null;
+  /** React to breakdowns, build-ups and drops (View > React to Drops). */
+  private sectionFx = true;
+  /** 1 when a drop lands, fading out; a louder section gives a smaller kick. */
+  private dropPulse = 0;
   private lastFrame: AudioFrame | null = null;
   private cssWidth = 0;
   private cssHeight = 0;
@@ -297,6 +313,10 @@ export class Visualizer extends EventTarget {
     if (def) this.switchTo(def);
   }
 
+  setSectionFx(on: boolean) {
+    this.sectionFx = on;
+  }
+
   /** Crossfade to the instance for `def` (classic or modern variant). */
   private switchTo(def: PresetDef) {
     const key = this.keyFor(def);
@@ -307,7 +327,9 @@ export class Visualizer extends EventTarget {
       this.transition = 0;
       // With a tempo lock, crossfade over two beats so the new scene arrives in time.
       const tempo = this.lastFrame?.tempo;
-      this.transitionSeconds = tempo?.locked ? Math.min(Math.max((60 / tempo.bpm) * 2, 0.6), 2) : TRANSITION_SECONDS;
+      this.transitionSeconds =
+        this.nextTransitionSeconds ??
+        (tempo?.locked ? Math.min(Math.max((60 / tempo.bpm) * 2, 0.6), 2) : TRANSITION_SECONDS);
     }
     this.currentKey = key;
   }
@@ -342,12 +364,14 @@ export class Visualizer extends EventTarget {
     }
   }
 
-  private randomize() {
+  private randomize(transitionSeconds: number | null = null) {
+    this.nextTransitionSeconds = transitionSeconds;
     const choices = PRESETS.filter((p) => p.id !== this.currentId);
     const pick = choices[Math.floor(Math.random() * choices.length)];
     this.autoMode = true;
     this.autoLimit = lerp(AUTO_MIN_SECONDS + 6, AUTO_MAX_SECONDS, Math.random());
     this.setPreset(pick.id, true);
+    this.nextTransitionSeconds = null;
   }
 
   private instance(def: PresetDef): Preset {
@@ -409,7 +433,30 @@ export class Visualizer extends EventTarget {
     this.textures.update(frame);
     this.lastFrame = frame;
 
-    if (this.autoMode) {
+    const section = frame.section;
+    let switched = false;
+    if (this.sectionFx) {
+      if (section.drop) {
+        this.dropPulse = 1;
+        if (this.autoMode) {
+          this.randomize(DROP_TRANSITION_SECONDS);
+          switched = true;
+        }
+      } else if (section.lift) {
+        this.dropPulse = Math.max(this.dropPulse, 0.35);
+        // A new section is the natural moment for Alchemy to change scene.
+        if (this.autoMode && this.barsSinceSwitch >= 4) {
+          this.randomize();
+          switched = true;
+        }
+      }
+    }
+    this.dropPulse *= Math.exp(-dt * 1.8);
+    const build = this.sectionFx ? section.build : 0;
+
+    // During a breakdown Alchemy holds its scene and saves the change for the drop.
+    const holdForDrop = this.sectionFx && section.breakdown;
+    if (this.autoMode && !switched && !holdForDrop) {
       this.autoTimer += dt;
       if (frame.tempo.locked) {
         // Switch on a bar line after 8 or 16 bars, like a DJ changing phrase.
@@ -442,16 +489,20 @@ export class Visualizer extends EventTarget {
     const a = previous?.bloom ?? current.bloom;
     const b = current.bloom;
     const t = previous ? k : 1;
-    this.bloomPass.strength = lerp(a.strength, b.strength, t) * (1 + frame.beat * 0.25);
+    this.bloomPass.strength = lerp(a.strength, b.strength, t) * (1 + frame.beat * 0.25 + this.dropPulse * 0.9 + build * 0.2);
     this.bloomPass.radius = lerp(a.radius, b.radius, t);
     this.bloomPass.threshold = lerp(a.threshold, b.threshold, t);
 
     const fu = this.finishPass.uniforms;
     fu.uTime.value = this.time;
     // Classic Mode skips the modern lens effects; the retro pass does the styling.
-    fu.uAberration.value = this.classic ? 0 : 0.25 + frame.beat * 0.9;
-    fu.uGrain.value = this.classic ? 0 : 0.01;
-    fu.uVignette.value = this.classic ? 0.15 : 0.45;
+    const pulse = this.dropPulse;
+    fu.uAberration.value = this.classic ? 0 : 0.25 + frame.beat * 0.9 + build * 0.6 + pulse * 2.5;
+    fu.uGrain.value = this.classic ? 0 : 0.01 + build * 0.03;
+    fu.uVignette.value = (this.classic ? 0.15 : 0.45) + build * 0.5;
+    // A build slowly pushes in; the drop punches in and springs back.
+    fu.uZoom.value = 1 - build * 0.04 - pulse * 0.08;
+    fu.uFlash.value = pulse * pulse * pulse * 0.6;
     const ease = 1 - Math.exp(-dt * 1.5);
     this.tint.lerp(this.tintTarget, ease);
     this.tintAmount += (this.tintAmountTarget - this.tintAmount) * ease;

@@ -60,6 +60,20 @@ or 16 bars with a crossfade two beats long, and the Battery scenes shift color o
 the detected BPM with a dot that pulses on every beat (yellow on the first beat of the bar). With no clear beat
 (ambient music, speech) everything falls back to reacting to the sound directly.
 
+## Drops and song sections
+
+The player also listens for the shape of the song. When the bass drops out for a few seconds (a breakdown),
+the picture tightens: the vignette closes in, the image slowly pushes in and the colors fringe more as risers
+and snare rolls build up. When the bass slams back in, the drop gets a flash, a zoom punch and extra glow, and
+Alchemy cuts straight to a new scene; it holds its scene through the breakdown to save the change for that
+moment. A clearly louder new section (a chorus kicking in) gets a smaller kick and is where Alchemy changes
+scene. The display shows **BUILD** during a breakdown and **DROP** when one lands.
+
+Detection is deliberately cautious and needs about 12 seconds of music to learn what "full" sounds like. It
+works best with electronic and pop music. If it misfires on your music, switch it off with
+*View > React to Drops* (or **D**); the choice is remembered. The demo beat has a breakdown and drop after 16
+bars to show it off.
+
 ## Visualizations
 
 | Collection | Name | What it does |
@@ -114,6 +128,7 @@ whole screen.
 | M | Mute |
 | I | Keep the song title visible in full screen (also *View > Show Song in Full Screen*) |
 | C | Classic Mode |
+| D | React to drops and new sections |
 | Up / Down | Volume (files and demo) |
 | Ctrl+O | Open audio files (or drag them onto the window) |
 | Ctrl+1 / Ctrl+2 | Full mode / skin mode |
@@ -142,6 +157,7 @@ src/
     AudioEngine.ts   sources (mic, tab capture, files, demo) feeding one AnalyserNode
     analysis.ts      128 log bands, auto gain, falling peaks, beat detection, aligned waveform
     tempo.ts         BPM via autocorrelation, beat phase locked to kicks, bar/downbeat tracking
+    sections.ts      breakdowns, build-ups, drops and louder sections
     DemoSynth.ts     small Web Audio groove for trying it without a mic
   viz/
     Visualizer.ts    render loop, crossfades, bloom + finishing pass, Alchemy mode, adaptive resolution

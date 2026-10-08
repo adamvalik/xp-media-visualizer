@@ -1,3 +1,4 @@
+import { SectionTracker, type SectionState } from './sections';
 import { TempoTracker, type TempoState } from './tempo';
 
 /**
@@ -41,6 +42,8 @@ export interface AudioFrame {
   hit: boolean;
   /** Tempo, beat and bar phase from the beat tracker. */
   tempo: TempoState;
+  /** Breakdowns, build-ups, drops and louder sections. */
+  section: SectionState;
   /** 0 when the input is silent, 1 when there is a healthy signal. */
   presence: number;
 }
@@ -61,6 +64,7 @@ export const approach = (current: number, target: number, rate: number, dt: numb
 
 export class AudioAnalysis {
   private readonly tempo = new TempoTracker();
+  private readonly sections = new SectionTracker();
 
   readonly frame: AudioFrame = {
     spectrum: new Float32Array(BANDS),
@@ -74,6 +78,7 @@ export class AudioAnalysis {
     onset: false,
     hit: false,
     tempo: this.tempo.state,
+    section: this.sections.state,
     presence: 0,
   };
   private readonly prevNorm = new Float32Array(BANDS);
@@ -172,6 +177,7 @@ export class AudioAnalysis {
     // When the grid is locked, beats come from it (steady, on time, even through fills).
     f.hit = f.tempo.locked ? f.tempo.tick : f.onset;
     if (f.tempo.locked && f.tempo.tick) f.beat = 1;
+    f.section = this.sections.update(f.bass, f.treble, this.ref, f.presence, f.tempo, dt);
     this.alignWaveform(dt);
     return f;
   }

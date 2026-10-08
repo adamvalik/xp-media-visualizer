@@ -1918,8 +1918,31 @@ dialog.modal::backdrop {
   color: #ffd84d;
 }
 
+/* BUILD / DROP tag from the song-section detection */
+.lcd-section {
+  padding: 0 4px;
+  border: 1px solid currentColor;
+  border-radius: 2px;
+  font-size: 9px;
+  font-weight: bold;
+  letter-spacing: 0.5px;
+  line-height: 12px;
+  transition: opacity 0.3s;
+}
+
+.lcd-section[hidden] {
+  display: none;
+}
+
+.lcd-section.drop {
+  background: #ffd84d;
+  border-color: #ffd84d;
+  color: #2a1c00;
+}
+
 @media (max-width: 420px) {
-  .lcd-bpm {
+  .lcd-bpm,
+  .lcd-section {
     display: none;
   }
 }
