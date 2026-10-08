@@ -49,4 +49,8 @@ export class Notifier {
     else host.append(body);
     if (!this.modal.open) this.modal.showModal();
   }
+
+  closeModal() {
+    if (this.modal.open) this.modal.close();
+  }
 }

@@ -84,6 +84,23 @@ the detected BPM with a dot that pulses on every beat (yellow on the first beat 
 scaled up with hard pixels, bloom and lens effects are off, colors are reduced to 16-bit with ordered
 dithering, and Bars, Ocean Mist and Scope switch to faithful flat 2D versions of the originals.
 
+### Skin mode
+
+*View > Skin Mode* (**Ctrl+2**, or the small button next to full screen) shrinks the player into a compact,
+oddly shaped skin like WMP's: the visualization in a round window, transport and display on a deck beside it,
+and visualization buttons set into the rim. Drag it by any part that isn't a button; double-click the
+visualization for full screen. **Ctrl+1** or the window button on the skin returns to full mode. The skin
+follows the color scheme picked in **Skin Chooser**, and the mode is remembered.
+
+### Screen saver
+
+When the mouse and keyboard have been idle for a few minutes while music is playing, the player switches to
+Alchemy and fills the window, like a screen saver. Moving the mouse or pressing a key brings back the previous
+visualization and view; that input is swallowed, so a click doesn't also press a button. Set it up (or switch
+it off) under *Tools > Screen Saver...*, which also has a Preview. Browsers only allow real full screen right
+after a click, so it fills the browser window; put the browser in full screen or install the app to cover the
+whole screen.
+
 ## Controls
 
 | Key | Action |
@@ -99,6 +116,7 @@ dithering, and Bars, Ocean Mist and Scope switch to faithful flat 2D versions of
 | C | Classic Mode |
 | Up / Down | Volume (files and demo) |
 | Ctrl+O | Open audio files (or drag them onto the window) |
+| Ctrl+1 / Ctrl+2 | Full mode / skin mode |
 
 The window can be dragged, resized, minimized to the taskbar and maximized. **Skin Chooser** switches between
 Blue, Olive Green, Silver and Royale Noir. Settings are remembered per browser.

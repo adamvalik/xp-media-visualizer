@@ -48,6 +48,12 @@
   --xp-tray-border: #092e51;
   --task-btn: #3c81f3;
   --task-btn-active: #1e52b7;
+  /* Compact skin (skin mode) */
+  --shell-hi: #9cbcf7;
+  --shell-mid: #3a6bd8;
+  --shell-lo: #15399a;
+  --shell-edge: #0a1f66;
+  --shell-well: #06133d;
 }
 
 [data-skin='olive'] {
@@ -85,6 +91,11 @@
   --xp-tray-border: #6b7f43;
   --task-btn: #9fb576;
   --task-btn-active: #74893f;
+  --shell-hi: #dbe6bd;
+  --shell-mid: #8ba45b;
+  --shell-lo: #4f6430;
+  --shell-edge: #2e3d18;
+  --shell-well: #1a220d;
 }
 
 [data-skin='silver'] {
@@ -125,6 +136,11 @@
   --xp-tray-border: #9b9bb2;
   --task-btn: #d6d6e2;
   --task-btn-active: #b2b2c6;
+  --shell-hi: #ffffff;
+  --shell-mid: #d2d2df;
+  --shell-lo: #9494ab;
+  --shell-edge: #55556e;
+  --shell-well: #262634;
 }
 
 [data-skin='noir'] {
@@ -165,6 +181,11 @@
   --xp-tray-border: #000;
   --task-btn: #2d2d2d;
   --task-btn-active: #4a4a4a;
+  --shell-hi: #5c5c5c;
+  --shell-mid: #1e1e1e;
+  --shell-lo: #050505;
+  --shell-edge: #000;
+  --shell-well: #000;
 }
 
 /* ---------- Base ---------- */
@@ -1906,4 +1927,346 @@ dialog.modal::backdrop {
 /* The desktop shortcut is only needed to reopen the player after closing it. */
 .desktop:has(.xp-window:not(.closed)) .desktop-icon {
   display: none;
+}
+
+/* ---------- Skin mode (View > Skin Mode) ---------- */
+
+.skin-chrome {
+  display: none;
+}
+
+.xp-window.skin-mode {
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  transform: scale(var(--skin-scale, 1));
+  transform-origin: 0 0;
+  /* Only the painted shape is part of the window; the corners around it belong to the desktop. */
+  pointer-events: none;
+}
+
+/* A transform would trap the fixed-position "full screen" stage inside the skin. */
+.xp-window.skin-mode:has(.pseudo-fullscreen) {
+  transform: none;
+}
+
+.skin-mode > .title-bar,
+.skin-mode .wmp-top,
+.skin-mode .taskbar,
+.skin-mode .playlist,
+.skin-mode .resize-grip,
+.skin-mode .stage-head,
+.skin-mode .controls .divider,
+.skin-mode .controls #btn-shuffle,
+.skin-mode .controls [data-cmd='fullscreen'] {
+  display: none;
+}
+
+.skin-mode .wmp {
+  background: none;
+}
+
+.skin-mode .wmp-body {
+  padding: 0;
+}
+
+.skin-mode .skin-chrome {
+  display: block;
+  position: absolute;
+  inset: 0;
+}
+
+.skin-shape {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  filter: drop-shadow(2px 6px 8px rgba(0, 0, 0, 0.45));
+}
+
+.skin-shape :is(circle, rect, path) {
+  pointer-events: visiblePainted;
+}
+
+.skin-edge {
+  fill: var(--shell-edge);
+  stroke: var(--shell-edge);
+  stroke-width: 4;
+}
+
+.skin-well {
+  fill: var(--shell-well);
+  stroke: rgba(255, 255, 255, 0.4);
+  stroke-width: 1.5;
+}
+
+/* The visualization sits in the round "eye" on the left. */
+.skin-mode .stage:not(.pseudo-fullscreen):not(:fullscreen) {
+  position: absolute;
+  left: 28px;
+  top: 23px;
+  z-index: 1;
+  width: 164px;
+  height: 164px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.55);
+}
+
+.skin-mode .stage {
+  pointer-events: auto;
+}
+
+.skin-mode .stage:not(.pseudo-fullscreen):not(:fullscreen)::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(ellipse 70% 45% at 38% 18%, rgba(255, 255, 255, 0.22), transparent 70%);
+  box-shadow: inset 0 0 14px rgba(0, 0, 0, 0.8);
+  pointer-events: none;
+}
+
+.skin-mode .stage:not(.pseudo-fullscreen):not(:fullscreen) :is(.start-screen, .track-toast) {
+  display: none;
+}
+
+/* Controls live on the deck to the right. */
+.skin-mode .transport {
+  position: absolute;
+  left: 214px;
+  top: 52px;
+  z-index: 2;
+  width: 222px;
+  padding: 0;
+  background: none;
+  border: 0;
+  color: var(--wmp-text);
+  pointer-events: auto;
+}
+
+.skin-mode .controls {
+  flex-wrap: wrap;
+  row-gap: 8px;
+}
+
+.skin-mode .lcd {
+  order: -1;
+  flex: 0 0 100%;
+  max-width: none;
+  margin: 0;
+}
+
+.skin-mode .t-btn.play {
+  margin: -2px 2px -2px 0;
+}
+
+.skin-mode .volume {
+  flex: 1 1 40px;
+  width: 40px;
+}
+
+.skin-logo,
+.skin-btn,
+.skin-vis,
+.skin-label {
+  position: absolute;
+  z-index: 2;
+}
+
+.skin-logo {
+  left: 336px;
+  top: 21px;
+  pointer-events: none;
+}
+
+.skin-btn {
+  top: 19px;
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--tb-btn-border);
+  border-radius: 4px;
+  background: var(--tb-btn);
+  color: #fff;
+  box-shadow: inset 0 -1px 2px rgba(0, 0, 0, 0.25);
+  pointer-events: auto;
+}
+
+.skin-btn[data-cmd='full-mode'] {
+  left: 370px;
+}
+
+.skin-btn[data-cmd='window-min'] {
+  left: 393px;
+}
+
+.skin-btn.close {
+  left: 416px;
+  background: radial-gradient(circle at 90% 90%, #cc4600 0%, #dc6527 55%, #cd7546 70%, #ffccb2 90%, #fff 100%);
+  border-color: #fff;
+}
+
+[data-skin='silver'] .skin-btn:not(.close) {
+  color: #2a2a44;
+}
+
+.skin-btn svg {
+  width: 12px;
+  height: 12px;
+}
+
+.skin-btn:hover,
+.skin-vis:hover {
+  filter: brightness(1.15);
+}
+
+.skin-btn:active,
+.skin-vis:active {
+  filter: brightness(0.85);
+}
+
+/* Small round buttons set into the rim around the visualization. */
+.skin-vis {
+  left: calc(var(--x) - 10px);
+  top: calc(var(--y) - 10px);
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--btn-border);
+  border-radius: 50%;
+  background: var(--btn-grad);
+  color: var(--btn-glyph);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8), 0 1px 2px rgba(0, 0, 0, 0.45);
+  pointer-events: auto;
+}
+
+.skin-vis svg {
+  width: 11px;
+  height: 11px;
+}
+
+.skin-vis[aria-pressed='true'] {
+  background: var(--btn-on);
+  color: #4a2a00;
+}
+
+.skin-label {
+  left: 222px;
+  top: 150px;
+  width: 200px;
+  color: var(--wmp-text);
+  font-weight: bold;
+  opacity: 0.85;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+}
+
+[data-skin='silver'] .skin-label {
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+/* With a seek bar (files) the deck gets busier; the label moves under it. */
+.skin-mode:has(.seek:not([hidden])) .skin-label {
+  top: 158px;
+}
+
+.skin-mode-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 18px 18px;
+}
+
+/* ---------- Screen saver ---------- */
+
+.stage.screensaver {
+  cursor: none;
+}
+
+.stage.screensaver .fs-bar {
+  display: none !important;
+}
+
+.saver-monitor {
+  display: grid;
+  justify-items: center;
+  margin: 2px 0 12px;
+}
+
+.saver-screen {
+  width: 168px;
+  height: 118px;
+  padding: 9px;
+  border-radius: 6px 6px 3px 3px;
+  background: linear-gradient(180deg, #f4f3ee 0%, #d9d6cb 100%);
+  box-shadow: inset 0 0 0 1px #8f8b7c, 1px 2px 3px rgba(0, 0, 0, 0.3);
+}
+
+.saver-screen span {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #000;
+  box-shadow: inset 0 0 0 1px #4a4a40;
+}
+
+.saver-screen span::before {
+  content: '';
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: conic-gradient(from 0deg at 50% 50%, #ff3cac, #784ba0, #2b86c5, #31e0b8, #ffd23c, #ff3cac);
+  filter: blur(6px) saturate(1.3);
+  transform: scale(1.6);
+  animation: saver-spin 6s linear infinite;
+  mask: radial-gradient(circle, #000 0 22%, transparent 23% 30%, #000 31% 40%, transparent 41% 50%, #000 51% 60%, transparent 61%);
+}
+
+.saver-screen.off span::before {
+  animation: none;
+  opacity: 0;
+}
+
+@keyframes saver-spin {
+  to {
+    transform: scale(1.6) rotate(1turn);
+  }
+}
+
+.saver-stand {
+  width: 56px;
+  height: 12px;
+  margin-top: -1px;
+  clip-path: polygon(22% 0, 78% 0, 100% 100%, 0 100%);
+  background: linear-gradient(180deg, #c9c5b8, #a8a495);
+}
+
+.saver-settings .group-box {
+  margin: 0 0 8px;
+}
+
+.saver-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.saver-row .xp-btn {
+  margin-left: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .saver-screen span::before {
+    animation: none;
+  }
 }

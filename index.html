@@ -25,6 +25,10 @@
         <symbol id="i-left" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7z" /></symbol>
         <symbol id="i-right" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7z" /></symbol>
         <symbol id="i-down" viewBox="0 0 24 24"><path d="M6 9l6 7 6-7z" /></symbol>
+        <symbol id="i-skin" viewBox="0 0 24 24"><circle cx="8" cy="12" r="6.5" /><rect x="9" y="7.5" width="13.5" height="9" rx="4.5" /></symbol>
+        <symbol id="i-full" viewBox="0 0 24 24"><path d="M3.5 5.5h17v13h-17z" fill="none" stroke="currentColor" stroke-width="2" /><path d="M3.5 5.5h17v4h-17z" /></symbol>
+        <symbol id="i-min" viewBox="0 0 24 24"><path d="M6 15.5h12v3.5H6z" /></symbol>
+        <symbol id="i-close" viewBox="0 0 24 24"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" /></symbol>
         <symbol id="i-mic" viewBox="0 0 32 32"><rect x="11.5" y="3" width="9" height="16" rx="4.5" fill="#6d93e6" stroke="#1d3c8f" stroke-width="1.5" /><rect x="13.5" y="5" width="2.5" height="8" rx="1.2" fill="#fff" opacity=".55" /><path d="M7.5 14.5a8.5 8.5 0 0 0 17 0M16 23v5M10.5 28.5h11" fill="none" stroke="#1d3c8f" stroke-width="2" stroke-linecap="round" /></symbol>
         <symbol id="i-tab" viewBox="0 0 32 32"><rect x="2.5" y="5" width="27" height="21" rx="2.5" fill="#fff" stroke="#1d3c8f" stroke-width="1.5" /><path d="M2.5 7.5a2.5 2.5 0 0 1 2.5-2.5h22a2.5 2.5 0 0 1 2.5 2.5V10h-27z" fill="#3a76e8" /><path d="M9 14h3l4-3.5v12L12 19H9z" fill="#1db954" /><path d="M19 13a4 4 0 0 1 0 6M21.5 11a7 7 0 0 1 0 10" fill="none" stroke="#1db954" stroke-width="1.8" stroke-linecap="round" /></symbol>
         <symbol id="i-note" viewBox="0 0 32 32"><circle cx="16" cy="16" r="13.5" fill="#ffb02e" stroke="#b25a00" stroke-width="1.5" /><path d="M13 21.5V9.5l9-2v11" fill="none" stroke="#fff" stroke-width="2.2" stroke-linejoin="round" /><circle cx="11" cy="21.5" r="2.6" fill="#fff" /><circle cx="20" cy="18.5" r="2.6" fill="#fff" /></symbol>
@@ -68,6 +72,9 @@
               <div class="menu">
                 <button class="menu-title" role="menuitem">View</button>
                 <div class="menu-pop" role="menu">
+                  <button data-cmd="full-mode" data-mode="full" role="menuitemradio">Full Mode<span class="kbd">Ctrl+1</span></button>
+                  <button data-cmd="skin-mode" data-mode="skin" role="menuitemradio">Skin Mode<span class="kbd">Ctrl+2</span></button>
+                  <hr />
                   <button data-cmd="view-now-playing">Now Playing</button>
                   <button data-cmd="view-library">Media Library</button>
                   <button data-cmd="view-sources">Radio Tuner</button>
@@ -104,6 +111,7 @@
                 <div class="menu-pop" role="menu">
                   <button data-cmd="view-sources">Audio Source &amp; Sensitivity...</button>
                   <button data-cmd="view-skins">Skins...</button>
+                  <button data-cmd="screensaver-settings">Screen Saver...</button>
                   <button data-cmd="install" id="install-item" hidden>Install as App...</button>
                 </div>
               </div>
@@ -135,6 +143,7 @@
                 <button class="vis-name" id="vis-name" title="Choose a visualization">Bars and Waves : Bars</button>
                 <div class="stage-head-spacer"></div>
                 <span class="view-title" id="view-title">Now Playing</span>
+                <button class="icon-btn" data-cmd="skin-mode" title="Switch to skin mode (Ctrl+2)"><svg><use href="#i-skin" /></svg></button>
                 <button class="icon-btn" data-cmd="fullscreen" title="Full screen (F)"><svg><use href="#i-fullscreen" /></svg></button>
               </div>
 
@@ -273,6 +282,10 @@
                     <p>Pick a color scheme. Your choice is remembered.</p>
                   </div>
                   <div class="skin-grid" id="skin-grid"></div>
+                  <div class="skin-mode-row">
+                    <button class="xp-btn" data-cmd="skin-mode">Switch to Skin Mode</button>
+                    <span class="hint">The compact player, in the color scheme picked above. Ctrl+1 brings back the full window.</span>
+                  </div>
                 </div>
               </div>
             </section>
@@ -320,6 +333,43 @@
               </div>
             </div>
           </div>
+        </div>
+        <div class="skin-chrome">
+          <svg class="skin-shape" viewBox="0 0 460 210" width="460" height="210" aria-hidden="true">
+            <defs>
+              <linearGradient id="skin-body" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" style="stop-color: var(--shell-hi)" />
+                <stop offset="0.5" style="stop-color: var(--shell-mid)" />
+                <stop offset="1" style="stop-color: var(--shell-lo)" />
+              </linearGradient>
+              <linearGradient id="skin-gloss" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stop-color="#fff" stop-opacity="0.55" />
+                <stop offset="1" stop-color="#fff" stop-opacity="0" />
+              </linearGradient>
+            </defs>
+            <g class="skin-edge">
+              <circle cx="110" cy="105" r="102" />
+              <rect x="148" y="40" width="304" height="136" rx="34" />
+              <rect x="322" y="12" width="124" height="50" rx="14" />
+            </g>
+            <g fill="url(#skin-body)">
+              <circle cx="110" cy="105" r="102" />
+              <rect x="148" y="40" width="304" height="136" rx="34" />
+              <rect x="322" y="12" width="124" height="50" rx="14" />
+            </g>
+            <path d="M190 44h228a30 30 0 0 1 30 30v0a18 18 0 0 1-18 18H178z" fill="url(#skin-gloss)" opacity="0.6" />
+            <path d="M30 70a86 86 0 0 1 150-36a96 96 0 0 0-150 36z" fill="#fff" opacity="0.35" />
+            <circle class="skin-well" cx="110" cy="105" r="87" />
+          </svg>
+          <img class="skin-logo" src="./icon.svg" alt="" width="16" height="16" />
+          <button class="skin-btn" data-cmd="full-mode" title="Return to full mode (Ctrl+1)" aria-label="Return to full mode"><svg><use href="#i-full" /></svg></button>
+          <button class="skin-btn" data-cmd="window-min" title="Minimize" aria-label="Minimize"><svg><use href="#i-min" /></svg></button>
+          <button class="skin-btn close" data-cmd="window-close" title="Close" aria-label="Close"><svg><use href="#i-close" /></svg></button>
+          <button class="skin-vis" style="--x: 40px; --y: 164px" data-cmd="vis-prev" title="Previous visualization" aria-label="Previous visualization"><svg><use href="#i-left" /></svg></button>
+          <button class="skin-vis" style="--x: 76px; --y: 190px" data-cmd="vis-random" aria-pressed="false" title="Shuffle visualizations" aria-label="Shuffle visualizations"><svg><use href="#i-shuffle" /></svg></button>
+          <button class="skin-vis" style="--x: 144px; --y: 190px" data-cmd="fullscreen" title="Full screen" aria-label="Full screen"><svg><use href="#i-fullscreen" /></svg></button>
+          <button class="skin-vis" style="--x: 180px; --y: 164px" data-cmd="vis-next" title="Next visualization" aria-label="Next visualization"><svg><use href="#i-right" /></svg></button>
+          <span class="skin-label" id="skin-vis-name"></span>
         </div>
         <div class="resize-grip" aria-hidden="true"></div>
       </section>

@@ -1,13 +1,20 @@
 const MIN_W = 480;
 const MIN_H = 360;
 const SMALL_SCREEN = 760;
+/** Size of the compact skin (must match `.skin-shape` in index.html). */
+const SKIN_W = 460;
+const SKIN_H = 210;
 
 /** Moves, resizes, minimizes and maximizes the single XP window on the fake desktop. */
 export class WindowManager {
   maximized = false;
   minimized = false;
   closed = false;
+  /** WMP "skin mode": the compact, oddly shaped player instead of the full window. */
+  skinMode = false;
   private rect = { x: 40, y: 30, w: 1100, h: 720 };
+  private skinPos = { x: 0, y: 0 };
+  private skinPlaced = false;
 
   constructor(
     private readonly win: HTMLElement,
@@ -57,6 +64,24 @@ export class WindowManager {
     this.apply();
   }
 
+  setSkinMode(on: boolean) {
+    if (on === this.skinMode) return;
+    this.skinMode = on;
+    if (on && !this.skinPlaced) {
+      // The first time, the skin appears in the middle of where the full player was; after that it
+      // comes back wherever it was dragged.
+      this.skinPlaced = true;
+      const { clientWidth: dw, clientHeight: dh } = this.desktop;
+      const full = this.win.classList.contains('maximized') ? { x: 0, y: 0, w: dw, h: dh } : this.rect;
+      const scale = this.skinScale();
+      this.skinPos = {
+        x: Math.round(full.x + (full.w - SKIN_W * scale) / 2),
+        y: Math.round(full.y + (full.h - SKIN_H * scale) / 2),
+      };
+    }
+    this.apply();
+  }
+
   /** Taskbar button: restore when minimized, minimize when already in front. */
   taskToggle() {
     if (this.minimized) this.minimized = false;
@@ -66,14 +91,25 @@ export class WindowManager {
   }
 
   private apply() {
+    const skin = this.skinMode;
     const forcedMax = this.desktop.clientWidth < SMALL_SCREEN;
-    const max = this.maximized || forcedMax;
+    const max = !skin && (this.maximized || forcedMax);
+    this.win.classList.toggle('skin-mode', skin);
     this.win.classList.toggle('maximized', max);
     this.win.classList.toggle('minimized', this.minimized);
     this.win.classList.toggle('closed', this.closed);
     this.taskButton.classList.toggle('gone', this.closed);
     this.taskButton.classList.toggle('active', this.visible && !this.win.classList.contains('inactive'));
-    if (!max) {
+    if (skin) {
+      const scale = this.skinScale();
+      this.clampSkin(scale);
+      const s = this.win.style;
+      s.setProperty('--skin-scale', String(scale));
+      s.left = `${this.skinPos.x}px`;
+      s.top = `${this.skinPos.y}px`;
+      s.width = `${SKIN_W}px`;
+      s.height = `${SKIN_H}px`;
+    } else if (!max) {
       this.clamp();
       const s = this.win.style;
       s.left = `${this.rect.x}px`;
@@ -91,6 +127,19 @@ export class WindowManager {
     r.h = Math.max(MIN_H, Math.min(r.h, dh));
     r.x = Math.min(Math.max(r.x, 60 - r.w), dw - 60);
     r.y = Math.min(Math.max(r.y, 0), dh - 30);
+  }
+
+  /** Shrinks the skin on screens narrower than it is. */
+  private skinScale() {
+    const { clientWidth: dw, clientHeight: dh } = this.desktop;
+    return Math.max(0.4, Math.min(1, (dw - 16) / SKIN_W, (dh - 16) / SKIN_H));
+  }
+
+  private clampSkin(scale: number) {
+    const { clientWidth: dw, clientHeight: dh } = this.desktop;
+    const p = this.skinPos;
+    p.x = Math.min(Math.max(p.x, 60 - SKIN_W * scale), dw - 60);
+    p.y = Math.min(Math.max(p.y, 0), dh - 40);
   }
 
   private setActive(active: boolean) {
@@ -130,6 +179,30 @@ export class WindowManager {
       bar.addEventListener('pointermove', move);
       bar.addEventListener('pointerup', up);
       bar.addEventListener('pointercancel', up);
+    });
+
+    // In skin mode there's no title bar: the whole skin is the handle, except its controls.
+    this.win.addEventListener('pointerdown', (e) => {
+      if (!this.skinMode || e.button !== 0) return;
+      if ((e.target as Element).closest('button, input, select, .seek')) return;
+      if (this.win.querySelector('.stage:fullscreen, .stage.pseudo-fullscreen')) return;
+      const startX = e.clientX - this.skinPos.x;
+      const startY = e.clientY - this.skinPos.y;
+      // Listen on the window instead of capturing the pointer, so a double-click on the
+      // visualization still reaches the stage (full screen).
+      const move = (ev: PointerEvent) => {
+        this.skinPos.x = ev.clientX - startX;
+        this.skinPos.y = ev.clientY - startY;
+        this.apply();
+      };
+      const up = () => {
+        window.removeEventListener('pointermove', move);
+        window.removeEventListener('pointerup', up);
+        window.removeEventListener('pointercancel', up);
+      };
+      window.addEventListener('pointermove', move);
+      window.addEventListener('pointerup', up);
+      window.addEventListener('pointercancel', up);
     });
   }
 

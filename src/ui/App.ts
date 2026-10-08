@@ -6,7 +6,8 @@ import { PRESETS, RANDOM_DEF, RANDOM_ID, presetLabel } from '../viz/presets';
 import type { PresetChangeDetail, Visualizer } from '../viz/Visualizer';
 import { setupMenus } from './menus';
 import { Notifier } from './notify';
-import { SKINS, loadSettings, saveSettings, type SkinId } from './settings';
+import { Screensaver } from './Screensaver';
+import { SCREENSAVER_MINUTES, SKINS, loadSettings, saveSettings, type SkinId } from './settings';
 import { WindowManager } from './WindowManager';
 
 const $ = <T extends HTMLElement = HTMLElement>(selector: string, root: ParentNode = document) =>
@@ -54,6 +55,10 @@ export class App {
   private readonly settings = loadSettings();
   private readonly notify = new Notifier();
   private readonly wm: WindowManager;
+  private readonly menus: ReturnType<typeof setupMenus>;
+  private readonly screensaver: Screensaver;
+  /** What to go back to when the screen saver ends. */
+  private beforeScreensaver: { preset: string; auto: boolean; view: ViewId; minimized: boolean } | null = null;
   private readonly stage = $('#stage');
   private view: ViewId = 'now-playing';
   private lastToastLabel = '';
@@ -78,7 +83,7 @@ export class App {
       this.save();
     });
     this.wm.init(this.settings.maximized);
-    setupMenus($('.menubar'));
+    this.menus = setupMenus($('.menubar'));
 
     this.buildVisMenu();
     this.buildPlaylist();
@@ -93,6 +98,15 @@ export class App {
     this.bindInstall();
     this.bindSpotify();
     this.applyLayout();
+    this.setSkinMode(this.settings.skinMode);
+
+    this.screensaver = new Screensaver({
+      enabled: () => this.settings.screensaver,
+      minutes: () => this.settings.screensaverMinutes,
+      canStart: () => this.canStartScreensaver(),
+      start: () => this.startScreensaver(),
+      stop: (preview) => this.stopScreensaver(preview),
+    });
 
     engine.addEventListener('change', () => this.onEngineChange());
     if (viz) {
@@ -194,6 +208,16 @@ export class App {
       case 'view-spotify':
         this.setView('sources');
         return $('#spotify-box').scrollIntoView({ block: 'start', behavior: 'smooth' });
+      case 'skin-mode':
+        return this.setSkinMode(true);
+      case 'full-mode':
+        return this.setSkinMode(false);
+      case 'screensaver-settings':
+        return this.showScreensaverSettings();
+      case 'screensaver-preview':
+        if (!this.viz) return;
+        this.notify.closeModal();
+        return this.screensaver.startNow(true);
       case 'toggle-playlist':
         this.settings.showPlaylist = !this.settings.showPlaylist;
         return this.applyLayout();
@@ -465,10 +489,12 @@ export class App {
     for (const li of $$('.pl-item')) li.classList.toggle('current', li.dataset.id === currentId);
     for (const card of $$('.lib-card')) card.classList.toggle('current', card.dataset.cmd === `vis:${currentId}`);
     for (const item of $$('#vis-menu button')) item.setAttribute('aria-checked', String(item.dataset.cmd === `vis:${currentId}`));
-    $('#btn-shuffle').setAttribute('aria-pressed', String(auto));
+    for (const btn of $$('[data-cmd="vis-random"][aria-pressed]')) btn.setAttribute('aria-pressed', String(auto));
     this.checkMenuItem('random', auto);
+    $('#skin-vis-name').textContent = presetLabel(def);
 
-
+    // The screen saver's Alchemy is temporary; keep the user's own choice saved.
+    if (this.beforeScreensaver) return;
     this.settings.preset = currentId;
     this.save();
   }
@@ -593,6 +619,8 @@ export class App {
   // ---------- Views & layout ----------
 
   private setView(view: ViewId) {
+    // The compact skin only has room for the visualization.
+    if (view !== 'now-playing' && this.wm.skinMode) this.setSkinMode(false);
     this.view = view;
     for (const el of $$('.view')) el.classList.toggle('active', el.dataset.view === view);
     for (const el of $$('.task-item[data-view]')) el.classList.toggle('active', el.dataset.view === view);
@@ -615,6 +643,19 @@ export class App {
     this.checkMenuItem('classic', this.settings.classicMode);
     this.checkMenuItem('fs-track', this.settings.fullscreenTrack);
     $<HTMLInputElement>('#fs-track').checked = this.settings.fullscreenTrack;
+    this.save();
+  }
+
+  /** WMP's two modes: the full window (Ctrl+1) or the compact skin (Ctrl+2). */
+  private setSkinMode(on: boolean) {
+    if (on) {
+      if (document.fullscreenElement) void document.exitFullscreen();
+      if (!this.beforeScreensaver) this.stage.classList.remove('pseudo-fullscreen');
+      this.setView('now-playing');
+    }
+    this.wm.setSkinMode(on);
+    this.settings.skinMode = on;
+    for (const item of $$('[data-mode]')) item.setAttribute('aria-checked', String((item.dataset.mode === 'skin') === on));
     this.save();
   }
 
@@ -714,6 +755,10 @@ export class App {
         if (e.key.toLowerCase() === 'o') {
           e.preventDefault();
           this.openFiles();
+        } else if (e.ctrlKey && (e.key === '1' || e.key === '2')) {
+          // Ctrl only: Cmd+digit switches browser tabs on a Mac.
+          e.preventDefault();
+          this.setSkinMode(e.key === '2');
         }
         return;
       }
@@ -975,6 +1020,88 @@ export class App {
     this.viz?.setTint(on ? this.albumRgb : null);
   }
 
+  // ---------- Screen saver ----------
+
+  private canStartScreensaver() {
+    return (
+      this.viz !== null &&
+      this.engine.state === 'playing' &&
+      !this.wm.closed &&
+      !document.fullscreenElement &&
+      !this.stage.classList.contains('pseudo-fullscreen')
+    );
+  }
+
+  /**
+   * Alchemy over the whole window. Browsers only allow real full screen right after a click, so this
+   * fills the page instead (which is the whole screen when the browser itself is in full screen).
+   */
+  private startScreensaver() {
+    const viz = this.viz;
+    if (!viz) return;
+    this.beforeScreensaver = { preset: viz.presetId, auto: viz.auto, view: this.view, minimized: this.wm.minimized };
+    this.menus.close();
+    this.notify.hideBalloon();
+    this.notify.closeModal();
+    if (this.wm.minimized) this.wm.open();
+    this.setView('now-playing');
+    viz.setAuto(true);
+    this.stage.classList.add('pseudo-fullscreen', 'screensaver');
+  }
+
+  private stopScreensaver(preview: boolean) {
+    const before = this.beforeScreensaver;
+    this.beforeScreensaver = null;
+    this.stage.classList.remove('pseudo-fullscreen', 'screensaver', 'idle');
+    if (!before) return;
+    if (!before.auto) this.viz?.setPreset(before.preset);
+    this.setView(before.view);
+    if (before.minimized) this.wm.minimize();
+    if (preview) this.showScreensaverSettings();
+  }
+
+  private showScreensaverSettings() {
+    const body = document.createElement('div');
+    body.className = 'saver-settings';
+    body.innerHTML = `
+      <div class="saver-monitor"><div class="saver-screen"><span></span></div><div class="saver-stand"></div></div>
+      <fieldset class="group-box">
+        <legend>Screen saver</legend>
+        <label class="saver-row"><input type="checkbox" id="saver-on" /> Start Alchemy in full screen when I'm away</label>
+        <div class="saver-row">
+          <label for="saver-minutes">Wait:</label>
+          <select id="saver-minutes" class="xp-select"></select>
+          <span>minutes</span>
+          <button class="xp-btn" data-cmd="screensaver-preview">Preview</button>
+        </div>
+      </fieldset>
+      <p class="hint">Starts only while music is playing. Move the mouse or press a key to get back to where you were.
+        Browsers allow real full screen only after a click, so it fills this browser window; switch the browser to
+        full screen (F11, or Ctrl+Cmd+F on a Mac) or install the app to cover the whole screen.</p>`;
+
+    const on = $<HTMLInputElement>('#saver-on', body);
+    const minutes = $<HTMLSelectElement>('#saver-minutes', body);
+    const screen = $('.saver-screen', body);
+    for (const m of SCREENSAVER_MINUTES) minutes.append(new Option(String(m), String(m)));
+    const sync = () => {
+      on.checked = this.settings.screensaver;
+      minutes.value = String(this.settings.screensaverMinutes);
+      minutes.disabled = !this.settings.screensaver;
+      screen.classList.toggle('off', !this.settings.screensaver);
+    };
+    on.addEventListener('change', () => {
+      this.settings.screensaver = on.checked;
+      this.save();
+      sync();
+    });
+    minutes.addEventListener('change', () => {
+      this.settings.screensaverMinutes = Number(minutes.value);
+      this.save();
+    });
+    sync();
+    this.notify.showModal('Screen Saver', body);
+  }
+
   // ---------- Dialogs ----------
 
   private showAbout() {
@@ -998,6 +1125,7 @@ export class App {
       ['M', 'Mute'],
       ['I', 'Show the song title in full screen'],
       ['C', 'Classic Mode (2003 look)'],
+      ['Ctrl+1 / Ctrl+2', 'Full mode / skin mode'],
       ['Up / Down', 'Volume (files and demo)'],
       ['Ctrl+O', 'Open audio files'],
     ];

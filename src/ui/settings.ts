@@ -32,6 +32,11 @@ export interface Settings {
   fullscreenTrack: boolean;
   /** Low-res, 16-bit, flat 2D rendering like the original visualizations. */
   classicMode: boolean;
+  /** WMP "skin mode": the compact player instead of the full window. */
+  skinMode: boolean;
+  /** Start Alchemy in full screen after `screensaverMinutes` without input while music plays. */
+  screensaver: boolean;
+  screensaverMinutes: number;
 }
 
 const KEY = 'xp-media-visualizer.settings.v1';
@@ -50,13 +55,19 @@ const DEFAULTS: Settings = {
   albumTint: true,
   fullscreenTrack: true,
   classicMode: false,
+  skinMode: false,
+  screensaver: true,
+  screensaverMinutes: 5,
 };
+
+export const SCREENSAVER_MINUTES = [1, 2, 3, 5, 10, 15, 30];
 
 export function loadSettings(): Settings {
   try {
     const stored = JSON.parse(localStorage.getItem(KEY) ?? '{}') as Partial<Settings>;
     const merged = { ...DEFAULTS, ...stored };
     if (!SKINS.some((s) => s.id === merged.skin)) merged.skin = DEFAULTS.skin;
+    if (!SCREENSAVER_MINUTES.includes(merged.screensaverMinutes)) merged.screensaverMinutes = DEFAULTS.screensaverMinutes;
     return merged;
   } catch {
     return { ...DEFAULTS };

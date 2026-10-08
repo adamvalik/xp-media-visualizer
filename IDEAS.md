@@ -19,8 +19,10 @@ Possible next steps, roughly in order of impact.
    Bubbles, Fire Storm, Alchemy : Mix, and *View > Classic Mode*.
 5. **Equalizer and enhancements panel** from WMP 9, with working sliders that shape what the visuals react to
    (more bass, less treble).
-6. **Compact "skin mode":** the famous oddly shaped mini player as a small window.
-7. **Screensaver mode:** start Alchemy in full screen after a few idle minutes.
+6. **Compact "skin mode":** ~~the famous oddly shaped mini player as a small window.~~ Done: *View > Skin Mode*
+   (Ctrl+2).
+7. **Screensaver mode:** ~~start Alchemy in full screen after a few idle minutes.~~ Done: *Tools > Screen
+   Saver...*; it fills the browser window, since real full screen needs a click.
 
 ## Practical
 
