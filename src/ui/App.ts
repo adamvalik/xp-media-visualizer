@@ -7,14 +7,20 @@ import type { PresetChangeDetail, Visualizer } from '../viz/Visualizer';
 import { CLIP_FORMATS, ClipRecorder, type Clip, type ClipCaption, type ClipFormat } from './ClipRecorder';
 import { setupMenus } from './menus';
 import { Notifier } from './notify';
+import { PopOut } from './PopOut';
 import { Screensaver } from './Screensaver';
 import { CLIP_SECONDS, SCREENSAVER_MINUTES, SKINS, loadSettings, saveSettings, type SkinId } from './settings';
 import { WindowManager } from './WindowManager';
 
-const $ = <T extends HTMLElement = HTMLElement>(selector: string, root: ParentNode = document) =>
-  root.querySelector<T>(selector)!;
-const $$ = <T extends HTMLElement = HTMLElement>(selector: string, root: ParentNode = document) =>
-  [...root.querySelectorAll<T>(selector)];
+/** The pop-out player's document while it's open; the player window and its controls live there then. */
+let popOutDoc: Document | null = null;
+
+const $ = <T extends HTMLElement = HTMLElement>(selector: string, root?: ParentNode) =>
+  (root ? root.querySelector<T>(selector) : document.querySelector<T>(selector) ?? popOutDoc?.querySelector<T>(selector))!;
+const $$ = <T extends HTMLElement = HTMLElement>(selector: string, root?: ParentNode) =>
+  root
+    ? [...root.querySelectorAll<T>(selector)]
+    : [...document.querySelectorAll<T>(selector), ...(popOutDoc?.querySelectorAll<T>(selector) ?? [])];
 
 type ViewId = 'now-playing' | 'library' | 'sources' | 'skins';
 
@@ -59,6 +65,7 @@ export class App {
   private readonly menus: ReturnType<typeof setupMenus>;
   private readonly screensaver: Screensaver;
   private readonly clips = new ClipRecorder();
+  private readonly popOut: PopOut;
   /** What to go back to when the screen saver ends. */
   private beforeScreensaver: { preset: string; auto: boolean; view: ViewId; minimized: boolean } | null = null;
   private readonly stage = $('#stage');
@@ -86,6 +93,10 @@ export class App {
     });
     this.wm.init(this.settings.maximized);
     this.menus = setupMenus($('.menubar'));
+    this.popOut = new PopOut($('#win'), {
+      open: (pip) => this.onPopOutOpen(pip),
+      close: () => this.onPopOutClose(),
+    });
 
     this.buildVisMenu();
     this.buildPlaylist();
@@ -130,6 +141,13 @@ export class App {
       }
     }
 
+    if (!PopOut.supported()) {
+      for (const el of $$<HTMLButtonElement>('[data-needs="pip"]')) {
+        el.disabled = true;
+        el.title = 'The pop-out player needs Chrome or Edge on a desktop computer.';
+      }
+    }
+
     if (!AudioEngine.tabCaptureSupported()) {
       for (const el of $$<HTMLButtonElement>('[data-needs="tab"]')) {
         el.disabled = true;
@@ -147,12 +165,14 @@ export class App {
 
   // ---------- Commands ----------
 
+  private readonly onCommandClick = (e: MouseEvent) => {
+    const el = (e.target as HTMLElement).closest<HTMLElement>('[data-cmd]');
+    if (!el || el.matches(':disabled') || el.classList.contains('desktop-icon')) return;
+    this.run(el.dataset.cmd!, el);
+  };
+
   private bindCommands() {
-    document.addEventListener('click', (e) => {
-      const el = (e.target as HTMLElement).closest<HTMLElement>('[data-cmd]');
-      if (!el || el.matches(':disabled') || el.classList.contains('desktop-icon')) return;
-      this.run(el.dataset.cmd!, el);
-    });
+    document.addEventListener('click', this.onCommandClick);
 
     const icon = $('.desktop-icon');
     icon.addEventListener('dblclick', () => this.run('window-open'));
@@ -223,6 +243,8 @@ export class App {
         return this.setSkinMode(true);
       case 'full-mode':
         return this.setSkinMode(false);
+      case 'pop-out':
+        return void this.togglePopOut();
       case 'screensaver-settings':
         return this.showScreensaverSettings();
       case 'screensaver-preview':
@@ -280,12 +302,15 @@ export class App {
       case 'window-max':
         return this.wm.toggleMaximize();
       case 'window-close':
+        // In the pop-out player, closing only closes the floating window.
+        if (this.popOut.isOpen) return this.popOut.close();
         this.engine.stop();
         return this.wm.close();
       case 'window-open':
-        return this.wm.open();
       case 'task-toggle':
-        return this.wm.taskToggle();
+        // While the player floats in its own window, the page's taskbar and desktop icon bring it back.
+        if (this.popOut.isOpen) return this.popOut.close();
+        return cmd === 'window-open' ? this.wm.open() : this.wm.taskToggle();
       case 'start':
         return this.notify.showBalloon(source ?? $('.start-button'), 'XP Media Visualizer', 'It is the only program installed on this computer. Turn the music up!');
       default:
@@ -640,6 +665,7 @@ export class App {
   private setSkin(id: SkinId) {
     if (!SKINS.some((s) => s.id === id)) return;
     document.documentElement.dataset.skin = id;
+    if (popOutDoc) popOutDoc.documentElement.dataset.skin = id;
     this.settings.skin = id;
     this.markSkin();
     this.save();
@@ -683,6 +709,7 @@ export class App {
 
   /** WMP's two modes: the full window (Ctrl+1) or the compact skin (Ctrl+2). */
   private setSkinMode(on: boolean) {
+    if (!on && this.popOut.isOpen) this.popOut.close();
     if (on) {
       if (document.fullscreenElement) void document.exitFullscreen();
       if (!this.beforeScreensaver) this.stage.classList.remove('pseudo-fullscreen');
@@ -692,6 +719,37 @@ export class App {
     this.settings.skinMode = on;
     for (const item of $$('[data-mode]')) item.setAttribute('aria-checked', String((item.dataset.mode === 'skin') === on));
     this.save();
+  }
+
+  /** Skin mode in a Picture-in-Picture window that stays on top of other apps (Chrome and Edge). */
+  private async togglePopOut() {
+    if (this.popOut.isOpen) return this.popOut.close();
+    if (!PopOut.supported()) {
+      this.notify.showModal('Pop Out Player', '<p>The pop-out player needs Chrome or Edge on a desktop computer. Skin mode (Ctrl+2) works everywhere.</p>');
+      return;
+    }
+    this.setSkinMode(true);
+    try {
+      await this.popOut.open();
+    } catch (err) {
+      console.warn('Could not open the pop-out player', err);
+      this.notify.showModal('Pop Out Player', '<p>The browser did not open the pop-out window. Click the pop-out button again.</p>');
+    }
+  }
+
+  private onPopOutOpen(pip: Window) {
+    popOutDoc = pip.document;
+    this.menus.close();
+    this.listenTo(pip.document);
+    this.viz?.setFrameWindow(pip);
+    for (const el of $$('[data-cmd="pop-out"]')) el.setAttribute('aria-pressed', 'true');
+  }
+
+  private onPopOutClose() {
+    popOutDoc = null;
+    this.stage.classList.remove('pseudo-fullscreen');
+    this.viz?.setFrameWindow(window);
+    for (const el of $$('[data-cmd="pop-out"]')) el.setAttribute('aria-pressed', 'false');
   }
 
   private checkMenuItem(key: string, on: boolean) {
@@ -807,77 +865,89 @@ export class App {
 
   // ---------- Keyboard, drag & drop, fullscreen ----------
 
-  private bindKeyboard() {
-    document.addEventListener('keydown', (e) => {
-      const target = e.target as HTMLElement;
-      if (target.closest('input, select, textarea, dialog')) return;
-      if ((e.key === ' ' || e.key === 'Enter') && target.closest('button')) return;
-      if (e.metaKey || e.ctrlKey) {
-        if (e.key.toLowerCase() === 'o') {
-          e.preventDefault();
-          this.openFiles();
-        } else if (e.ctrlKey && (e.key === '1' || e.key === '2')) {
-          // Ctrl only: Cmd+digit switches browser tabs on a Mac.
-          e.preventDefault();
-          this.setSkinMode(e.key === '2');
-        }
-        return;
-      }
-      if (e.altKey) return;
-      const viz = this.viz;
-      switch (e.key) {
-        case ' ':
-        case 'k':
-          e.preventDefault();
-          this.playPause();
-          break;
-        case 's':
-          this.engine.stop();
-          break;
-        case 'ArrowRight':
-        case 'n':
-          viz?.step(1);
-          break;
-        case 'ArrowLeft':
-        case 'p':
-          viz?.step(-1);
-          break;
-        case 'r':
-          viz?.setAuto(!viz.auto);
-          break;
-        case 'f':
-          this.toggleFullscreen();
-          break;
-        case 'm':
-          this.engine.muted = !this.engine.muted;
-          break;
-        case 'i':
-          this.run('toggle-fs-track');
-          break;
-        case 'c':
-          this.run('toggle-classic');
-          break;
-        case 'd':
-          this.run('toggle-sections');
-          break;
-        case 'v':
-          this.toggleRecording();
-          break;
-        case 'ArrowUp':
-          e.preventDefault();
-          this.engine.volume += 0.05;
-          break;
-        case 'ArrowDown':
-          e.preventDefault();
-          this.engine.volume -= 0.05;
-          break;
-        default: {
-          const n = Number(e.key);
-          if (n >= 1 && n <= PLAYLIST.length) this.choosePreset(PLAYLIST[n - 1].id);
-        }
-      }
-    });
+  /** Clicks and keys, in the page and in the pop-out player. */
+  private listenTo(doc: Document) {
+    doc.addEventListener('click', this.onCommandClick);
+    doc.addEventListener('keydown', this.onKey);
+    doc.addEventListener('keydown', this.onEscape);
   }
+
+  private bindKeyboard() {
+    document.addEventListener('keydown', this.onKey);
+  }
+
+  private readonly onKey = (e: KeyboardEvent) => {
+    const target = e.target as HTMLElement;
+    if (target.closest('input, select, textarea, dialog')) return;
+    if ((e.key === ' ' || e.key === 'Enter') && target.closest('button')) return;
+    if (e.metaKey || e.ctrlKey) {
+      if (e.key.toLowerCase() === 'o') {
+        e.preventDefault();
+        this.openFiles();
+      } else if (e.ctrlKey && (e.key === '1' || e.key === '2')) {
+        // Ctrl only: Cmd+digit switches browser tabs on a Mac.
+        e.preventDefault();
+        this.setSkinMode(e.key === '2');
+      } else if (e.ctrlKey && e.key === '3') {
+        e.preventDefault();
+        void this.togglePopOut();
+      }
+      return;
+    }
+    if (e.altKey) return;
+    const viz = this.viz;
+    switch (e.key) {
+      case ' ':
+      case 'k':
+        e.preventDefault();
+        this.playPause();
+        break;
+      case 's':
+        this.engine.stop();
+        break;
+      case 'ArrowRight':
+      case 'n':
+        viz?.step(1);
+        break;
+      case 'ArrowLeft':
+      case 'p':
+        viz?.step(-1);
+        break;
+      case 'r':
+        viz?.setAuto(!viz.auto);
+        break;
+      case 'f':
+        this.toggleFullscreen();
+        break;
+      case 'm':
+        this.engine.muted = !this.engine.muted;
+        break;
+      case 'i':
+        this.run('toggle-fs-track');
+        break;
+      case 'c':
+        this.run('toggle-classic');
+        break;
+      case 'd':
+        this.run('toggle-sections');
+        break;
+      case 'v':
+        this.toggleRecording();
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        this.engine.volume += 0.05;
+        break;
+      case 'ArrowDown':
+        e.preventDefault();
+        this.engine.volume -= 0.05;
+        break;
+      default: {
+        const n = Number(e.key);
+        if (n >= 1 && n <= PLAYLIST.length) this.choosePreset(PLAYLIST[n - 1].id);
+      }
+    }
+  };
 
   private bindDragAndDrop() {
     let depth = 0;
@@ -915,6 +985,12 @@ export class App {
       return;
     }
     this.setView('now-playing');
+    // A Picture-in-Picture window can't go full screen; the visualization fills it instead.
+    if (this.popOut.isOpen) {
+      stage.classList.add('pseudo-fullscreen');
+      this.wakeControls();
+      return;
+    }
     const fallback = () => {
       if (!document.fullscreenElement) stage.classList.add('pseudo-fullscreen');
     };
@@ -934,14 +1010,16 @@ export class App {
       if ((e.target as HTMLElement).closest('button, .start-screen')) return;
       this.toggleFullscreen();
     });
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && this.stage.classList.contains('pseudo-fullscreen')) this.stage.classList.remove('pseudo-fullscreen');
-    });
+    document.addEventListener('keydown', this.onEscape);
     document.addEventListener('fullscreenchange', () => {
       if (document.fullscreenElement) this.stage.classList.remove('pseudo-fullscreen');
       this.wakeControls();
     });
   }
+
+  private readonly onEscape = (e: KeyboardEvent) => {
+    if (e.key === 'Escape' && this.stage.classList.contains('pseudo-fullscreen')) this.stage.classList.remove('pseudo-fullscreen');
+  };
 
   private wakeControls() {
     this.stage.classList.remove('idle');
@@ -1095,6 +1173,7 @@ export class App {
       this.engine.state === 'playing' &&
       !this.clips.recording &&
       !this.wm.closed &&
+      !this.popOut.isOpen &&
       !document.fullscreenElement &&
       !this.stage.classList.contains('pseudo-fullscreen')
     );
@@ -1345,6 +1424,7 @@ export class App {
       ['D', 'React to drops and new sections'],
       ['V', 'Record a clip / stop recording'],
       ['Ctrl+1 / Ctrl+2', 'Full mode / skin mode'],
+      ['Ctrl+3', 'Pop out the player (stays on top of other apps)'],
       ['Up / Down', 'Volume (files and demo)'],
       ['Ctrl+O', 'Open audio files'],
     ];

@@ -118,6 +118,15 @@ and visualization buttons set into the rim. Drag it by any part that isn't a but
 visualization for full screen. **Ctrl+1** or the window button on the skin returns to full mode. The skin
 follows the color scheme picked in **Skin Chooser**, and the mode is remembered.
 
+### Pop-out player
+
+In Chrome and Edge, the pop-out button on the skin (or *View > Pop Out Player*, **Ctrl+3**) moves the skin into
+a small Picture-in-Picture window that stays on top of other apps, so the visualization keeps going next to
+whatever you work on. It is a plain rectangle with the browser's own frame rather than the skin's shape, and
+you can resize it; double-click the visualization (or the full screen button) to let it fill the window.
+Closing that window, the close button on the skin or the player's button in the page's taskbar puts the
+player back in the page. The audio is still captured by the page, so keep its tab open.
+
 ### Screen saver
 
 When the mouse and keyboard have been idle for a few minutes while music is playing, the player switches to
@@ -145,6 +154,7 @@ whole screen.
 | Up / Down | Volume (files and demo) |
 | Ctrl+O | Open audio files (or drag them onto the window) |
 | Ctrl+1 / Ctrl+2 | Full mode / skin mode |
+| Ctrl+3 | Pop out the player into a window that stays on top (Chrome and Edge) |
 
 The window can be dragged, resized, minimized to the taskbar and maximized. **Skin Chooser** switches between
 Blue, Olive Green, Silver and Royale Noir. Settings are remembered per browser.

@@ -28,6 +28,7 @@
         <symbol id="i-rec" viewBox="0 0 24 24"><circle cx="12" cy="12" r="6.5" /></symbol>
         <symbol id="i-skin" viewBox="0 0 24 24"><circle cx="8" cy="12" r="6.5" /><rect x="9" y="7.5" width="13.5" height="9" rx="4.5" /></symbol>
         <symbol id="i-full" viewBox="0 0 24 24"><path d="M3.5 5.5h17v13h-17z" fill="none" stroke="currentColor" stroke-width="2" /><path d="M3.5 5.5h17v4h-17z" /></symbol>
+        <symbol id="i-popout" viewBox="0 0 24 24"><path d="M3.5 5.5h17v13h-17z" fill="none" stroke="currentColor" stroke-width="2" /><rect x="11" y="11" width="8" height="6" /></symbol>
         <symbol id="i-min" viewBox="0 0 24 24"><path d="M6 15.5h12v3.5H6z" /></symbol>
         <symbol id="i-close" viewBox="0 0 24 24"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" /></symbol>
         <symbol id="i-mic" viewBox="0 0 32 32"><rect x="11.5" y="3" width="9" height="16" rx="4.5" fill="#6d93e6" stroke="#1d3c8f" stroke-width="1.5" /><rect x="13.5" y="5" width="2.5" height="8" rx="1.2" fill="#fff" opacity=".55" /><path d="M7.5 14.5a8.5 8.5 0 0 0 17 0M16 23v5M10.5 28.5h11" fill="none" stroke="#1d3c8f" stroke-width="2" stroke-linecap="round" /></symbol>
@@ -75,6 +76,7 @@
                 <div class="menu-pop" role="menu">
                   <button data-cmd="full-mode" data-mode="full" role="menuitemradio">Full Mode<span class="kbd">Ctrl+1</span></button>
                   <button data-cmd="skin-mode" data-mode="skin" role="menuitemradio">Skin Mode<span class="kbd">Ctrl+2</span></button>
+                  <button data-cmd="pop-out" data-needs="pip">Pop Out Player<span class="kbd">Ctrl+3</span></button>
                   <hr />
                   <button data-cmd="view-now-playing">Now Playing</button>
                   <button data-cmd="view-library">Media Library</button>
@@ -148,6 +150,7 @@
                 <span class="view-title" id="view-title">Now Playing</span>
                 <button class="icon-btn rec-btn" data-cmd="record" data-needs="record" aria-pressed="false" title="Record a clip (V)"><svg><use href="#i-rec" /></svg></button>
                 <button class="icon-btn" data-cmd="skin-mode" title="Switch to skin mode (Ctrl+2)"><svg><use href="#i-skin" /></svg></button>
+                <button class="icon-btn" data-cmd="pop-out" data-needs="pip" aria-pressed="false" title="Pop out a mini player that stays on top (Ctrl+3)"><svg><use href="#i-popout" /></svg></button>
                 <button class="icon-btn" data-cmd="fullscreen" title="Full screen (F)"><svg><use href="#i-fullscreen" /></svg></button>
               </div>
 
@@ -369,6 +372,7 @@
             <circle class="skin-well" cx="110" cy="105" r="87" />
           </svg>
           <img class="skin-logo" src="./icon.svg" alt="" width="16" height="16" />
+          <button class="skin-btn" data-cmd="pop-out" data-needs="pip" aria-pressed="false" title="Pop out: keep the player on top of other apps (Ctrl+3)" aria-label="Pop out"><svg><use href="#i-popout" /></svg></button>
           <button class="skin-btn" data-cmd="full-mode" title="Return to full mode (Ctrl+1)" aria-label="Return to full mode"><svg><use href="#i-full" /></svg></button>
           <button class="skin-btn" data-cmd="window-min" title="Minimize" aria-label="Minimize"><svg><use href="#i-min" /></svg></button>
           <button class="skin-btn close" data-cmd="window-close" title="Close" aria-label="Close"><svg><use href="#i-close" /></svg></button>

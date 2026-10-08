@@ -220,6 +220,9 @@ export class Visualizer extends EventTarget {
   private readonly minPixelRatio: number;
   private raf = 0;
   private last = 0;
+  /** The window whose frames drive the loop: this page, or the pop-out player while it's open. */
+  private frameWindow: Window = window;
+  private resizeObserver: ResizeObserver;
   private time = 0;
   private renderEnabled = true;
   private readonly tint = new THREE.Vector3(1, 1, 1);
@@ -254,7 +257,8 @@ export class Visualizer extends EventTarget {
     this.retroPass.enabled = false;
     this.composer.addPass(this.retroPass);
 
-    new ResizeObserver(() => this.resize()).observe(canvas.parentElement ?? canvas);
+    this.resizeObserver = new ResizeObserver(() => this.resize());
+    this.resizeObserver.observe(canvas.parentElement ?? canvas);
     this.resize();
   }
 
@@ -269,12 +273,29 @@ export class Visualizer extends EventTarget {
   start() {
     if (this.raf) return;
     this.last = performance.now();
-    this.raf = requestAnimationFrame(this.loop);
+    this.raf = this.frameWindow.requestAnimationFrame(this.loop);
   }
 
   stop() {
-    cancelAnimationFrame(this.raf);
+    this.frameWindow.cancelAnimationFrame(this.raf);
     this.raf = 0;
+  }
+
+  /**
+   * Call after the canvas moves into another window (the pop-out player). A hidden page gets no
+   * animation frames, so the loop has to follow the window that shows the canvas, and resize
+   * observers only report on elements in their own window.
+   */
+  setFrameWindow(win: Window) {
+    if (win === this.frameWindow) return;
+    const running = this.raf !== 0;
+    this.stop();
+    this.frameWindow = win;
+    this.resizeObserver.disconnect();
+    this.resizeObserver = new (win as Window & typeof globalThis).ResizeObserver(() => this.resize());
+    this.resizeObserver.observe(this.canvas.parentElement ?? this.canvas);
+    this.resize();
+    if (running) this.start();
   }
 
   /** Skip rendering (e.g. while another view covers the canvas) but keep analysing audio. */
@@ -421,8 +442,10 @@ export class Visualizer extends EventTarget {
     for (const preset of this.instances.values()) preset.resize(this.deviceWidth, this.deviceHeight);
   }
 
-  private loop = (now: number) => {
-    this.raf = requestAnimationFrame(this.loop);
+  private loop = () => {
+    this.raf = this.frameWindow.requestAnimationFrame(this.loop);
+    // Not the callback's timestamp: each window counts from its own time origin.
+    const now = performance.now();
     const rawDt = Math.max((now - this.last) / 1000, 0);
     const dt = Math.min(rawDt, 0.1);
     this.last = now;

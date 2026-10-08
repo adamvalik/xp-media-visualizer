@@ -183,7 +183,8 @@ export class WindowManager {
 
     // In skin mode there's no title bar: the whole skin is the handle, except its controls.
     this.win.addEventListener('pointerdown', (e) => {
-      if (!this.skinMode || e.button !== 0) return;
+      // The pop-out player is moved with its own window frame.
+      if (!this.skinMode || e.button !== 0 || this.win.classList.contains('popped')) return;
       if ((e.target as Element).closest('button, input, select, .seek')) return;
       if (this.win.querySelector('.stage:fullscreen, .stage.pseudo-fullscreen')) return;
       const startX = e.clientX - this.skinPos.x;
