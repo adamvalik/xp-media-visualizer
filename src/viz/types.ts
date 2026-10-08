@@ -1,6 +1,7 @@
 import type * as THREE from 'three';
 import type { AudioFrame } from '../audio/analysis';
 import type { AudioTextures } from './AudioTextures';
+import type { Milkdrop } from './Milkdrop';
 
 export interface BloomSettings {
   strength: number;
@@ -11,6 +12,7 @@ export interface BloomSettings {
 export interface PresetContext {
   renderer: THREE.WebGLRenderer;
   textures: AudioTextures;
+  milkdrop: Milkdrop;
 }
 
 export interface Preset {

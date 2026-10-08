@@ -1048,6 +1048,64 @@ body:has(.pseudo-fullscreen) .desktop {
   color: #555;
 }
 
+/* MilkDrop preset list, like a long list in the original Media Library. */
+.md-browser {
+  padding-top: 0;
+}
+
+.md-browser p {
+  margin: 0 0 8px;
+  color: #444;
+}
+
+.md-search-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.md-search-row .xp-input {
+  flex: 0 1 260px;
+}
+
+#md-status {
+  color: #555;
+}
+
+.md-list {
+  height: 300px;
+  overflow-y: auto;
+  border: 1px solid #7f9db9;
+  background: #fff;
+}
+
+.md-item {
+  display: block;
+  width: 100%;
+  padding: 2px 8px;
+  border: 0;
+  background: none;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font: inherit;
+}
+
+.md-item:nth-child(even) {
+  background: #f3f6fc;
+}
+
+.md-item:hover {
+  background: #dfe9fb;
+}
+
+.md-item.current {
+  background: var(--accent);
+  color: #fff;
+}
+
 .source-list {
   display: grid;
   gap: 6px;

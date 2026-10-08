@@ -103,6 +103,21 @@ files, the demo and tab audio, but the room sound for the microphone.
 | Battery | event horizon | Video-feedback warp pouring out of a pulsing waveform ring |
 | Battery | hyperspace | Flight through a tunnel built from spectrum rings |
 | Battery | spiderbite | A trembling spider web of light; every strand is a frequency band |
+| MilkDrop | Shuffle | Hops through nearly 400 hand-picked MilkDrop presets, changing on the bar and cutting on drops |
+| MilkDrop | Single Preset | Stays on one of the 1,754 MilkDrop presets, picked in Media Library |
+
+### MilkDrop
+
+The other half of the 2000s visualizer nostalgia: Winamp's MilkDrop, through
+[Butterchurn](https://github.com/jberg/butterchurn), its WebGL port. *MilkDrop : Shuffle* plays the presets
+from Butterchurn's own packs (the ones that render well in it) and changes them like Alchemy: on a bar line
+after 8 or 16 bars, on a louder new section, and with a hard cut on a drop, holding its preset through
+breakdowns. Alchemy : Random includes it. **Media Library** lists the whole collection of 1,754 community
+presets with a search box; click one to show it as *MilkDrop : Single Preset*, which is remembered.
+
+MilkDrop listens to the same analysed audio as the other scenes, so Sensitivity and the automatic gain apply,
+and it goes through the same bloom, drop flash, album tint and Classic Mode. Butterchurn loads only when a
+MilkDrop scene first needs it, and each preset is a small file fetched when it is shown.
 
 ### Classic Mode
 
@@ -186,6 +201,7 @@ src/
     Visualizer.ts    render loop, crossfades, bloom + finishing pass, Alchemy mode, adaptive resolution
     AudioTextures.ts spectrum/waveform as GPU textures, plus scrolling history textures
     presets/         one file per scene; flat.ts holds the 2D classics, mix.ts the Alchemy layering
+    Milkdrop.ts      Butterchurn in its own canvas, fed our audio, copied into the pipeline as a texture
   spotify/           PKCE login, now-playing polling, album art color extraction
   ui/                XP window manager, menus, balloons, dialogs, playlist, transport, skins
   styles/xp.css      Luna chrome and the WMP 9 frame, four skins
@@ -201,4 +217,5 @@ More ideas for the future are in [IDEAS.md](IDEAS.md).
 ## Notes
 
 Fan project, not affiliated with or endorsed by Microsoft. Windows and Windows Media are trademarks of
-Microsoft Corporation. The look is recreated in CSS; no original artwork is used.
+Microsoft Corporation. The look is recreated in CSS; no original artwork is used. MilkDrop presets are by
+their authors (named in each preset's title) and come with Butterchurn, by Jordan Berg, under the MIT License.

@@ -3,6 +3,7 @@ import { BarsPreset } from './bars';
 import { BubblesPreset } from './bubbles';
 import { FeedbackPreset } from './feedback';
 import { ClassicBarsPreset, ClassicScopePreset } from './flat';
+import { MilkdropPreset } from './milkdrop';
 import { MixPreset } from './mix';
 import { OceanPreset } from './ocean';
 import { ScopePreset } from './scope';
@@ -12,6 +13,9 @@ import { WaterPreset } from './water';
 
 /** Pseudo preset that hops between all the others, like WMP's "Alchemy". */
 export const RANDOM_ID = 'alchemy-random';
+
+export const MILKDROP_SHUFFLE_ID = 'milkdrop-shuffle';
+export const MILKDROP_SINGLE_ID = 'milkdrop-single';
 
 export const RANDOM_DEF = {
   id: RANDOM_ID,
@@ -108,6 +112,20 @@ export const PRESETS: PresetDef[] = [
     name: 'spiderbite',
     description: 'A trembling spider web of light; every strand is a frequency band.',
     create: (ctx) => new FeedbackPreset(ctx, { mode: 2, kaleido: 0, bloom: { strength: 0.4, radius: 0.35, threshold: 0.5 } }),
+  },
+  {
+    id: MILKDROP_SHUFFLE_ID,
+    group: 'MilkDrop',
+    name: 'Shuffle',
+    description: 'Hops through nearly 400 hand-picked presets from the Winamp classic, changing on the bar and cutting on drops.',
+    create: (ctx) => new MilkdropPreset(ctx, 'shuffle'),
+  },
+  {
+    id: MILKDROP_SINGLE_ID,
+    group: 'MilkDrop',
+    name: 'Single Preset',
+    description: 'Stays on one MilkDrop preset. Pick it from the list in Media Library.',
+    create: (ctx) => new MilkdropPreset(ctx, 'single'),
   },
 ];
 

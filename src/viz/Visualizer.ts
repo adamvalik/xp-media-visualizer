@@ -9,7 +9,8 @@ import type { AudioEngine } from '../audio/AudioEngine';
 import { AudioTextures } from './AudioTextures';
 import { FULLSCREEN_VERT } from './glsl';
 import { lerp, smoothstep } from './helpers';
-import { PRESETS } from './presets';
+import { Milkdrop } from './Milkdrop';
+import { MILKDROP_SINGLE_ID, PRESETS } from './presets';
 import type { Preset, PresetDef } from './types';
 
 const TRANSITION_SECONDS = 1.8;
@@ -185,6 +186,7 @@ export interface PresetChangeDetail {
 export class Visualizer extends EventTarget {
   readonly renderer: THREE.WebGLRenderer;
   readonly textures = new AudioTextures();
+  readonly milkdrop: Milkdrop;
   /** Called every frame with fresh analysis, even when the canvas is hidden. */
   onFrame: ((frame: AudioFrame, dt: number) => void) | null = null;
   /** Called right after each rendered frame, while the canvas still holds it (clip recording). */
@@ -233,6 +235,7 @@ export class Visualizer extends EventTarget {
 
   constructor(private readonly canvas: HTMLCanvasElement, private readonly engine: AudioEngine) {
     super();
+    this.milkdrop = new Milkdrop(engine.analysis);
     this.renderer = new THREE.WebGLRenderer({
       canvas,
       antialias: false,
@@ -274,6 +277,8 @@ export class Visualizer extends EventTarget {
     if (this.raf) return;
     this.last = performance.now();
     this.raf = this.frameWindow.requestAnimationFrame(this.loop);
+    // Alchemy can land on MilkDrop any time; have it ready once the page has settled.
+    window.setTimeout(() => this.milkdrop.warmUp(), 4000);
   }
 
   stop() {
@@ -338,6 +343,13 @@ export class Visualizer extends EventTarget {
 
   setSectionFx(on: boolean) {
     this.sectionFx = on;
+    this.milkdrop.sectionFx = on;
+  }
+
+  /** Shows MilkDrop preset `index` (from `milkdrop.names()`) as Single Preset. */
+  chooseMilkdrop(index: number) {
+    this.milkdrop.choose(index);
+    this.setPreset(MILKDROP_SINGLE_ID);
   }
 
   /** Crossfade to the instance for `def` (classic or modern variant). */
@@ -389,7 +401,8 @@ export class Visualizer extends EventTarget {
 
   private randomize(transitionSeconds: number | null = null) {
     this.nextTransitionSeconds = transitionSeconds;
-    const choices = PRESETS.filter((p) => p.id !== this.currentId);
+    // Single Preset would only repeat one preset; MilkDrop's Shuffle is in the mix instead.
+    const choices = PRESETS.filter((p) => p.id !== this.currentId && p.id !== MILKDROP_SINGLE_ID);
     const pick = choices[Math.floor(Math.random() * choices.length)];
     this.autoMode = true;
     this.autoLimit = lerp(AUTO_MIN_SECONDS + 6, AUTO_MAX_SECONDS, Math.random());
@@ -401,7 +414,7 @@ export class Visualizer extends EventTarget {
     const key = this.keyFor(def);
     let preset = this.instances.get(key);
     if (!preset) {
-      const ctx = { renderer: this.renderer, textures: this.textures };
+      const ctx = { renderer: this.renderer, textures: this.textures, milkdrop: this.milkdrop };
       preset = key.endsWith('#classic') ? def.classic!(ctx) : def.create(ctx);
       preset.resize(this.deviceWidth, this.deviceHeight);
       this.instances.set(key, preset);

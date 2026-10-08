@@ -2,7 +2,7 @@ import { BANDS, type AudioFrame } from '../audio/analysis';
 import { AudioEngine, type SourceKind } from '../audio/AudioEngine';
 import { albumColor } from '../spotify/albumColor';
 import { SpotifyClient, redirectUri } from '../spotify/SpotifyClient';
-import { PRESETS, RANDOM_DEF, RANDOM_ID, presetLabel } from '../viz/presets';
+import { MILKDROP_SINGLE_ID, PRESETS, RANDOM_DEF, RANDOM_ID, presetLabel } from '../viz/presets';
 import type { PresetChangeDetail, Visualizer } from '../viz/Visualizer';
 import { CLIP_FORMATS, ClipRecorder, type Clip, type ClipCaption, type ClipFormat } from './ClipRecorder';
 import { setupMenus } from './menus';
@@ -124,6 +124,8 @@ export class App {
     engine.addEventListener('change', () => this.onEngineChange());
     if (viz) {
       viz.addEventListener('presetchange', (e) => this.onPresetChange((e as CustomEvent<PresetChangeDetail>).detail));
+      viz.milkdrop.preferred = this.settings.milkdrop;
+      viz.milkdrop.addEventListener('change', () => this.onMilkdropChange());
       viz.onFrame = (frame) => this.onFrame(frame);
       viz.onRender = (canvas) => this.clips.drawFrame(canvas);
       this.clips.addEventListener('done', (e) => this.onClipDone((e as CustomEvent<Clip>).detail));
@@ -641,6 +643,79 @@ export class App {
     }
   }
 
+  private milkdropListFilled = false;
+
+  /** The MilkDrop preset list in Media Library, filled the first time the library opens. */
+  private fillMilkdropList() {
+    const viz = this.viz;
+    if (this.milkdropListFilled || !viz) return;
+    this.milkdropListFilled = true;
+    const list = $('#md-list');
+    const search = $<HTMLInputElement>('#md-search');
+    const status = $('#md-status');
+    viz.milkdrop
+      .names()
+      .then((names) => {
+        list.replaceChildren(
+          ...names.map((name, i) => {
+            const item = document.createElement('button');
+            item.className = 'md-item';
+            item.dataset.md = String(i);
+            item.textContent = name;
+            return item;
+          }),
+        );
+        search.disabled = false;
+        status.textContent = `${names.length.toLocaleString('en-US')} presets`;
+        this.markMilkdropItem();
+      })
+      .catch(() => {
+        this.milkdropListFilled = false;
+        status.textContent = 'Could not load the preset list. Check the connection and open Media Library again.';
+      });
+
+    list.addEventListener('click', (e) => {
+      const item = (e.target as HTMLElement).closest<HTMLElement>('.md-item');
+      if (!item) return;
+      viz.chooseMilkdrop(Number(item.dataset.md));
+      this.setView('now-playing');
+    });
+    search.addEventListener('input', () => {
+      const words = search.value.toLowerCase().split(/\s+/).filter(Boolean);
+      let shown = 0;
+      for (const item of list.children as HTMLCollectionOf<HTMLElement>) {
+        const text = item.textContent!.toLowerCase();
+        item.hidden = !words.every((w) => text.includes(w));
+        if (!item.hidden) shown++;
+      }
+      status.textContent = words.length ? `${shown.toLocaleString('en-US')} found` : `${list.children.length.toLocaleString('en-US')} presets`;
+    });
+  }
+
+  private markMilkdropItem() {
+    const viz = this.viz;
+    if (!viz) return;
+    const current = viz.presetId === MILKDROP_SINGLE_ID ? viz.milkdrop.choice : -1;
+    for (const item of $$('.md-item.current')) item.classList.remove('current');
+    $(`.md-item[data-md="${current}"]`)?.classList.add('current');
+  }
+
+  /** MilkDrop scenes change presets on their own; the labels name the one showing. */
+  private onMilkdropChange() {
+    const viz = this.viz!;
+    const def = PRESETS.find((p) => p.id === viz.presetId);
+    if (def?.group !== 'MilkDrop') return;
+    const label = `MilkDrop : ${viz.milkdrop.name}`;
+    $('#fs-label').textContent = label;
+    $('#skin-vis-name').textContent = label;
+    $('#vis-name').title = `Now showing ${label}`;
+    this.markMilkdropItem();
+    if (def.id === MILKDROP_SINGLE_ID && !this.beforeScreensaver) {
+      this.settings.milkdrop = viz.milkdrop.name;
+      this.save();
+    }
+  }
+
   private buildSkins() {
     const grid = $('#skin-grid');
     for (const skin of SKINS) {
@@ -680,6 +755,7 @@ export class App {
   private setView(view: ViewId) {
     // The compact skin only has room for the visualization.
     if (view !== 'now-playing' && this.wm.skinMode) this.setSkinMode(false);
+    if (view === 'library') this.fillMilkdropList();
     this.view = view;
     for (const el of $$('.view')) el.classList.toggle('active', el.dataset.view === view);
     for (const el of $$('.task-item[data-view]')) el.classList.toggle('active', el.dataset.view === view);

@@ -11,10 +11,12 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "butterchurn": "^2.6.7",
     "three": "^0.186.1"
   },
   "devDependencies": {
     "@types/three": "^0.186.0",
+    "butterchurn-presets": "^2.4.7",
     "typescript": "^7.0.2",
     "vite": "^8.3.3"
   }

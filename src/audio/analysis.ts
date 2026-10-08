@@ -234,6 +234,20 @@ export class AudioAnalysis {
     this.lastBass = energy;
   }
 
+  /**
+   * The newest samples as Web Audio time-domain bytes (128 is silence), with the waveform's automatic
+   * gain so a quiet microphone drives MilkDrop presets like a full-scale signal.
+   */
+  timeBytes(out: Uint8Array) {
+    const td = this.time;
+    const gain = (0.8 / this.wavePeak) * this.frame.presence;
+    const offset = Math.max(0, td.length - out.length);
+    for (let i = 0; i < out.length; i++) {
+      const v = 128 + (td[offset + i] ?? 0) * gain * 128;
+      out[i] = v < 0 ? 0 : v > 255 ? 255 : v;
+    }
+  }
+
   private alignWaveform(dt: number) {
     const f = this.frame;
     const td = this.time;

@@ -45,6 +45,8 @@ export interface Settings {
   clipSeconds: number;
   clipCaption: boolean;
   clipAudio: boolean;
+  /** Name of the MilkDrop preset shown by MilkDrop : Single Preset. */
+  milkdrop: string;
 }
 
 const KEY = 'xp-media-visualizer.settings.v1';
@@ -71,6 +73,7 @@ const DEFAULTS: Settings = {
   clipSeconds: 30,
   clipCaption: true,
   clipAudio: true,
+  milkdrop: '',
 };
 
 export const CLIP_SECONDS = [10, 15, 30, 60];

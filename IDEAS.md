@@ -8,16 +8,13 @@ Roughly in order of impact.
    Core Audio taps on macOS), so the Spotify desktop app works without a microphone or a loopback driver. The
    same app can show skin mode as a transparent, borderless, always-on-top window that lives on the desktop
    while you work, with clicks on its transparent corners passing through to the window underneath.
-2. **MilkDrop presets.** Add [Butterchurn](https://github.com/jberg/butterchurn), the WebGL port of MilkDrop, as
-   a third collection next to the built-in scenes: thousands of community presets and the other half of the
-   2000s visualizer nostalgia. Feed it the existing analysis and let Alchemy, drops and Classic Mode work with it.
-3. **Colors that follow the harmony.** Build a chromagram (energy per pitch class) from the spectrum to follow
+2. **Colors that follow the harmony.** Build a chromagram (energy per pitch class) from the spectrum to follow
    chord changes and guess major or minor. Chord changes shift the hue on the bar line; minor passages lean
    cool, major ones warm. It complements the album-art tint, which only knows the cover.
-4. **Reduce flashing.** A setting (on by default when the system asks for reduced motion) that caps the drop
+3. **Reduce flashing.** A setting (on by default when the system asks for reduced motion) that caps the drop
    flash, chromatic aberration and fast brightness changes for people sensitive to flicker. It matters more
    now that drops flash the whole screen.
-5. **System media controls.** Report the current file or Spotify song to the operating system through the
+4. **System media controls.** Report the current file or Spotify song to the operating system through the
    Media Session API, so the media keys, the lock screen and the Control Center show it and can play, pause and
    skip files.
 
@@ -36,5 +33,7 @@ Roughly in order of impact.
   Saver...*
 - **Pop-out player:** skin mode in a Document Picture-in-Picture window that stays on top of other apps
   (Chrome and Edge). *View > Pop Out Player* (Ctrl+3).
+- **MilkDrop presets:** Butterchurn as a MilkDrop collection, with Shuffle following bars and drops, Alchemy
+  and Classic Mode working with it, and all 1,754 presets searchable in Media Library. See `src/viz/Milkdrop.ts`.
 - **Record a clip:** the visualization with its sound as an MP4 in wide, square or tall format. **V** or
   *Tools > Record Clip...*
