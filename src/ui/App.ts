@@ -4,10 +4,11 @@ import { albumColor } from '../spotify/albumColor';
 import { SpotifyClient, redirectUri } from '../spotify/SpotifyClient';
 import { PRESETS, RANDOM_DEF, RANDOM_ID, presetLabel } from '../viz/presets';
 import type { PresetChangeDetail, Visualizer } from '../viz/Visualizer';
+import { CLIP_FORMATS, ClipRecorder, type Clip, type ClipCaption, type ClipFormat } from './ClipRecorder';
 import { setupMenus } from './menus';
 import { Notifier } from './notify';
 import { Screensaver } from './Screensaver';
-import { SCREENSAVER_MINUTES, SKINS, loadSettings, saveSettings, type SkinId } from './settings';
+import { CLIP_SECONDS, SCREENSAVER_MINUTES, SKINS, loadSettings, saveSettings, type SkinId } from './settings';
 import { WindowManager } from './WindowManager';
 
 const $ = <T extends HTMLElement = HTMLElement>(selector: string, root: ParentNode = document) =>
@@ -57,6 +58,7 @@ export class App {
   private readonly wm: WindowManager;
   private readonly menus: ReturnType<typeof setupMenus>;
   private readonly screensaver: Screensaver;
+  private readonly clips = new ClipRecorder();
   /** What to go back to when the screen saver ends. */
   private beforeScreensaver: { preset: string; auto: boolean; view: ViewId; minimized: boolean } | null = null;
   private readonly stage = $('#stage');
@@ -112,11 +114,20 @@ export class App {
     if (viz) {
       viz.addEventListener('presetchange', (e) => this.onPresetChange((e as CustomEvent<PresetChangeDetail>).detail));
       viz.onFrame = (frame) => this.onFrame(frame);
+      viz.onRender = (canvas) => this.clips.drawFrame(canvas);
+      this.clips.addEventListener('done', (e) => this.onClipDone((e as CustomEvent<Clip>).detail));
       if (this.settings.preset === RANDOM_ID) viz.setAuto(true);
       else viz.setPreset(PRESETS.some((p) => p.id === this.settings.preset) ? this.settings.preset : 'bars-bars');
       viz.start();
     } else {
       this.showWebGLError();
+    }
+
+    if (!viz || !ClipRecorder.supported()) {
+      for (const el of $$<HTMLButtonElement>('[data-needs="record"]')) {
+        el.disabled = true;
+        el.title = 'Recording clips needs a browser with MediaRecorder and WebGL.';
+      }
     }
 
     if (!AudioEngine.tabCaptureSupported()) {
@@ -218,6 +229,13 @@ export class App {
         if (!this.viz) return;
         this.notify.closeModal();
         return this.screensaver.startNow(true);
+      case 'record':
+        return this.toggleRecording();
+      case 'record-settings':
+        return this.showRecordSettings();
+      case 'record-start':
+        this.notify.closeModal();
+        return this.startRecording();
       case 'toggle-playlist':
         this.settings.showPlaylist = !this.settings.showPlaylist;
         return this.applyLayout();
@@ -472,6 +490,10 @@ export class App {
     const time = $('#lcd-time');
     if (e.kind === 'file' && e.duration > 0) time.textContent = `${formatTime(e.elapsed)} / ${formatTime(e.duration)}`;
     else time.textContent = formatTime(e.elapsed);
+
+    if (this.clips.recording) {
+      $('#rec-time').textContent = `REC ${formatTime(this.clips.elapsed)} / ${formatTime(this.clips.limit)}`;
+    }
 
     if (e.seekable) {
       const pct = `${Math.min(100, (e.elapsed / e.duration) * 100)}%`;
@@ -838,6 +860,9 @@ export class App {
         case 'd':
           this.run('toggle-sections');
           break;
+        case 'v':
+          this.toggleRecording();
+          break;
         case 'ArrowUp':
           e.preventDefault();
           this.engine.volume += 0.05;
@@ -1068,6 +1093,7 @@ export class App {
     return (
       this.viz !== null &&
       this.engine.state === 'playing' &&
+      !this.clips.recording &&
       !this.wm.closed &&
       !document.fullscreenElement &&
       !this.stage.classList.contains('pseudo-fullscreen')
@@ -1144,6 +1170,155 @@ export class App {
     this.notify.showModal('Screen Saver', body);
   }
 
+  // ---------- Clip recording ----------
+
+  private toggleRecording() {
+    if (this.clips.recording) this.clips.stop();
+    else this.startRecording();
+  }
+
+  private startRecording() {
+    if (!this.viz || !ClipRecorder.supported() || this.clips.recording) return;
+    if (this.engine.state !== 'playing') {
+      this.notify.showBalloon($('#btn-play'), 'Nothing to record', 'Start some music first, then record a clip.', 5);
+      return;
+    }
+    this.setView('now-playing');
+    const audio = this.settings.clipAudio ? this.engine.recordingStream() : null;
+    try {
+      this.clips.start(
+        this.settings.clipFormat,
+        this.settings.clipSeconds,
+        audio,
+        this.settings.clipCaption ? () => this.clipCaption() : null,
+      );
+    } catch (err) {
+      console.error('Could not start recording', err);
+      this.notify.showBalloon($('#vis-name'), 'Could not record', 'This browser refused to record the visualization.', 6);
+      return;
+    }
+    this.showRecording(true);
+    this.tick();
+  }
+
+  private showRecording(on: boolean) {
+    $('#rec-badge').hidden = !on;
+    this.stage.classList.toggle('recording', on);
+    for (const btn of $$('.rec-btn')) {
+      btn.setAttribute('aria-pressed', String(on));
+      btn.title = on ? 'Stop recording (V)' : 'Record a clip (V)';
+    }
+  }
+
+  /** The song shown in the clip: Spotify's track for live inputs, the file name for files. */
+  private clipCaption(): ClipCaption | null {
+    const track = this.spotifyTrack();
+    if (track) return { title: track.title, subtitle: track.artists };
+    const e = this.engine;
+    if (e.kind === 'file' || e.kind === 'demo') return { title: e.label, subtitle: '' };
+    return null;
+  }
+
+  private onClipDone(clip: Clip) {
+    this.showRecording(false);
+    if (clip.blob.size === 0) {
+      this.notify.showBalloon($('#vis-name'), 'Nothing recorded', 'The clip came out empty. Try again with the visualization on screen.', 6);
+      return;
+    }
+    const url = URL.createObjectURL(clip.blob);
+    const format = CLIP_FORMATS[this.settings.clipFormat];
+    const caption = this.clipCaption()?.title ?? '';
+    const d = new Date();
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const stamp = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}.${pad(d.getMinutes())}`;
+    const name = `XP Media Visualizer ${stamp}${caption ? ` - ${caption}` : ''}`.replace(/[\\/:*?"<>|]+/g, ' ').trim();
+
+    const body = document.createElement('div');
+    body.className = 'clip-ready';
+    body.innerHTML = `
+      <video class="clip-preview" controls playsinline></video>
+      <p class="clip-info"></p>
+      <div class="clip-actions"><a class="xp-btn">Save Clip</a></div>
+      <p class="hint">Format and length are under Tools &gt; Record Clip... Full screen gives the sharpest picture.</p>`;
+    const video = $<HTMLVideoElement>('video', body);
+    video.src = url;
+    video.style.aspectRatio = `${format.width} / ${format.height}`;
+    const save = $<HTMLAnchorElement>('a', body);
+    save.href = url;
+    save.download = `${name}.${clip.extension}`;
+    const mb = (clip.blob.size / 1_048_576).toFixed(1);
+    $('.clip-info', body).textContent =
+      `${Math.round(clip.seconds)} seconds, ${format.name} (${format.width} \u00d7 ${format.height}), ${clip.extension.toUpperCase()}, ${mb} MB`;
+
+    this.notify.showModal('Clip Ready', body);
+    // Free the video once the dialog is closed (or replaced by another one).
+    const modal = $<HTMLDialogElement>('#modal');
+    const release = () => {
+      if (body.isConnected && modal.open) return;
+      video.pause();
+      URL.revokeObjectURL(url);
+      modal.removeEventListener('close', release);
+    };
+    modal.addEventListener('close', release);
+  }
+
+  private showRecordSettings() {
+    const body = document.createElement('div');
+    body.className = 'record-settings';
+    const formats = (Object.keys(CLIP_FORMATS) as ClipFormat[])
+      .map((id) => {
+        const f = CLIP_FORMATS[id];
+        return `<label class="clip-format"><input type="radio" name="clip-format" value="${id}" />
+          <span class="clip-shape" style="aspect-ratio: ${f.width} / ${f.height}"></span>
+          <span><b>${f.name}</b><small>${f.width} \u00d7 ${f.height}</small></span></label>`;
+      })
+      .join('');
+    body.innerHTML = `
+      <fieldset class="group-box">
+        <legend>Format</legend>
+        <div class="clip-formats">${formats}</div>
+      </fieldset>
+      <fieldset class="group-box">
+        <legend>Options</legend>
+        <div class="saver-row"><label for="clip-seconds">Length: up to</label><select id="clip-seconds" class="xp-select"></select><span>seconds</span></div>
+        <label class="saver-row"><input type="checkbox" id="clip-caption" /> Show the song title in the clip</label>
+        <label class="saver-row"><input type="checkbox" id="clip-audio" /> Include the sound</label>
+      </fieldset>
+      <p class="hint">The clip is made from the visualization on screen, cropped to the format, so full screen gives the
+        sharpest picture. The sound is what the visualizer hears: with the microphone that's the room. Press V or click
+        REC to stop early.</p>
+      <div class="clip-actions"><button class="xp-btn" data-cmd="record-start">Start Recording</button></div>`;
+
+    for (const radio of $$<HTMLInputElement>('input[name="clip-format"]', body)) {
+      radio.checked = radio.value === this.settings.clipFormat;
+      radio.addEventListener('change', () => {
+        this.settings.clipFormat = radio.value as ClipFormat;
+        this.save();
+      });
+    }
+    const seconds = $<HTMLSelectElement>('#clip-seconds', body);
+    for (const n of CLIP_SECONDS) seconds.append(new Option(String(n), String(n)));
+    seconds.value = String(this.settings.clipSeconds);
+    seconds.addEventListener('change', () => {
+      this.settings.clipSeconds = Number(seconds.value);
+      this.save();
+    });
+    const caption = $<HTMLInputElement>('#clip-caption', body);
+    caption.checked = this.settings.clipCaption;
+    caption.addEventListener('change', () => {
+      this.settings.clipCaption = caption.checked;
+      this.save();
+    });
+    const audio = $<HTMLInputElement>('#clip-audio', body);
+    audio.checked = this.settings.clipAudio;
+    audio.addEventListener('change', () => {
+      this.settings.clipAudio = audio.checked;
+      this.save();
+    });
+    $<HTMLButtonElement>('[data-cmd="record-start"]', body).disabled = !this.viz || !ClipRecorder.supported();
+    this.notify.showModal('Record Clip', body);
+  }
+
   // ---------- Dialogs ----------
 
   private showAbout() {
@@ -1168,6 +1343,7 @@ export class App {
       ['I', 'Show the song title in full screen'],
       ['C', 'Classic Mode (2003 look)'],
       ['D', 'React to drops and new sections'],
+      ['V', 'Record a clip / stop recording'],
       ['Ctrl+1 / Ctrl+2', 'Full mode / skin mode'],
       ['Up / Down', 'Volume (files and demo)'],
       ['Ctrl+O', 'Open audio files'],

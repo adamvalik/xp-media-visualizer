@@ -74,6 +74,18 @@ works best with electronic and pop music. If it misfires on your music, switch i
 *View > React to Drops* (or **D**); the choice is remembered. The demo beat has a breakdown and drop after 16
 bars to show it off.
 
+## Record a clip
+
+Press **V** (or the red dot next to full screen) to record the visualization with its sound; press it again or
+click the REC badge to stop early. When it's done, a dialog shows the clip with a *Save Clip* button.
+*Tools > Record Clip...* sets the format (wide 1920 × 1080, square 1080 × 1080 or tall 1080 × 1920 for stories),
+the length (10 to 60 seconds), whether the song title appears in the lower left, and whether the sound is
+included. Clips are MP4 in Chrome, Edge and Safari and WebM in Firefox.
+
+The clip is made from the visualization on screen, cropped to fill the format, so full screen gives the
+sharpest picture. The sound is what the visualizer hears, before the volume slider: a clean recording for
+files, the demo and tab audio, but the room sound for the microphone.
+
 ## Visualizations
 
 | Collection | Name | What it does |
@@ -129,6 +141,7 @@ whole screen.
 | I | Keep the song title visible in full screen (also *View > Show Song in Full Screen*) |
 | C | Classic Mode |
 | D | React to drops and new sections |
+| V | Record a clip / stop recording |
 | Up / Down | Volume (files and demo) |
 | Ctrl+O | Open audio files (or drag them onto the window) |
 | Ctrl+1 / Ctrl+2 | Full mode / skin mode |

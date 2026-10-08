@@ -28,6 +28,7 @@ Possible next steps, roughly in order of impact.
 ## Practical
 
 8. **Per-scene settings** (speed, palette, intensity) and favorite presets saved to the playlist.
-9. **Record a clip** of the visuals together with the audio as a video file for sharing.
+9. **Record a clip** ~~of the visuals together with the audio as a video file for sharing.~~ Done: **V** or
+   *Tools > Record Clip...*
 10. **Native Mac app (Tauri)** that captures system audio directly, so the Spotify desktop app works without a
     microphone or a loopback driver.

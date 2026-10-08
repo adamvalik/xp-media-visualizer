@@ -1,4 +1,5 @@
 import type { SourceKind } from '../audio/AudioEngine';
+import { CLIP_FORMATS, type ClipFormat } from './ClipRecorder';
 
 export type SkinId = 'blue' | 'olive' | 'silver' | 'noir';
 
@@ -39,6 +40,11 @@ export interface Settings {
   /** Start Alchemy in full screen after `screensaverMinutes` without input while music plays. */
   screensaver: boolean;
   screensaverMinutes: number;
+  /** Record Clip options. */
+  clipFormat: ClipFormat;
+  clipSeconds: number;
+  clipCaption: boolean;
+  clipAudio: boolean;
 }
 
 const KEY = 'xp-media-visualizer.settings.v1';
@@ -61,7 +67,13 @@ const DEFAULTS: Settings = {
   skinMode: false,
   screensaver: true,
   screensaverMinutes: 5,
+  clipFormat: 'wide',
+  clipSeconds: 30,
+  clipCaption: true,
+  clipAudio: true,
 };
+
+export const CLIP_SECONDS = [10, 15, 30, 60];
 
 export const SCREENSAVER_MINUTES = [1, 2, 3, 5, 10, 15, 30];
 
@@ -70,6 +82,8 @@ export function loadSettings(): Settings {
     const stored = JSON.parse(localStorage.getItem(KEY) ?? '{}') as Partial<Settings>;
     const merged = { ...DEFAULTS, ...stored };
     if (!SKINS.some((s) => s.id === merged.skin)) merged.skin = DEFAULTS.skin;
+    if (!(merged.clipFormat in CLIP_FORMATS)) merged.clipFormat = DEFAULTS.clipFormat;
+    if (!CLIP_SECONDS.includes(merged.clipSeconds)) merged.clipSeconds = DEFAULTS.clipSeconds;
     if (!SCREENSAVER_MINUTES.includes(merged.screensaverMinutes)) merged.screensaverMinutes = DEFAULTS.screensaverMinutes;
     return merged;
   } catch {

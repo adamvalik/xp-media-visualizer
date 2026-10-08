@@ -25,6 +25,7 @@
         <symbol id="i-left" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7z" /></symbol>
         <symbol id="i-right" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7z" /></symbol>
         <symbol id="i-down" viewBox="0 0 24 24"><path d="M6 9l6 7 6-7z" /></symbol>
+        <symbol id="i-rec" viewBox="0 0 24 24"><circle cx="12" cy="12" r="6.5" /></symbol>
         <symbol id="i-skin" viewBox="0 0 24 24"><circle cx="8" cy="12" r="6.5" /><rect x="9" y="7.5" width="13.5" height="9" rx="4.5" /></symbol>
         <symbol id="i-full" viewBox="0 0 24 24"><path d="M3.5 5.5h17v13h-17z" fill="none" stroke="currentColor" stroke-width="2" /><path d="M3.5 5.5h17v4h-17z" /></symbol>
         <symbol id="i-min" viewBox="0 0 24 24"><path d="M6 15.5h12v3.5H6z" /></symbol>
@@ -113,6 +114,7 @@
                   <button data-cmd="view-sources">Audio Source &amp; Sensitivity...</button>
                   <button data-cmd="view-skins">Skins...</button>
                   <button data-cmd="screensaver-settings">Screen Saver...</button>
+                  <button data-cmd="record-settings" data-needs="record">Record Clip...<span class="kbd">V</span></button>
                   <button data-cmd="install" id="install-item" hidden>Install as App...</button>
                 </div>
               </div>
@@ -144,6 +146,7 @@
                 <button class="vis-name" id="vis-name" title="Choose a visualization">Bars and Waves : Bars</button>
                 <div class="stage-head-spacer"></div>
                 <span class="view-title" id="view-title">Now Playing</span>
+                <button class="icon-btn rec-btn" data-cmd="record" data-needs="record" aria-pressed="false" title="Record a clip (V)"><svg><use href="#i-rec" /></svg></button>
                 <button class="icon-btn" data-cmd="skin-mode" title="Switch to skin mode (Ctrl+2)"><svg><use href="#i-skin" /></svg></button>
                 <button class="icon-btn" data-cmd="fullscreen" title="Full screen (F)"><svg><use href="#i-fullscreen" /></svg></button>
               </div>
@@ -152,6 +155,7 @@
                 <div class="view active" data-view="now-playing">
                   <canvas id="vis-canvas"></canvas>
                   <div class="track-toast" id="track-toast"></div>
+                  <button class="rec-badge" id="rec-badge" data-cmd="record" title="Stop recording (V)" hidden><i></i><span id="rec-time"></span></button>
                   <div class="start-screen" id="start-screen">
                     <div class="xp-dialog start-dialog">
                       <div class="title-bar small">
@@ -189,6 +193,7 @@
                     <button class="t-btn play" data-cmd="play-pause" title="Play/Pause"><svg><use href="#i-play" /></svg></button>
                     <button class="t-btn" data-cmd="vis-next" title="Next visualization"><svg><use href="#i-right" /></svg></button>
                     <span class="fs-label" id="fs-label"></span>
+                    <button class="t-btn rec-btn" data-cmd="record" data-needs="record" aria-pressed="false" title="Record a clip (V)"><svg><use href="#i-rec" /></svg></button>
                     <button class="t-btn" data-cmd="fullscreen" title="Exit full screen (Esc)"><svg><use href="#i-fullscreen" /></svg></button>
                   </div>
                   <div class="drop-hint" id="drop-hint"><span>Drop audio files to play them</span></div>

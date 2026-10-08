@@ -30,6 +30,7 @@ export class AudioEngine extends EventTarget {
 
   private ctx: AudioContext | null = null;
   private analyser: AnalyserNode | null = null;
+  private recordTap: MediaStreamAudioDestinationNode | null = null;
   private output: GainNode | null = null;
   private stream: MediaStream | null = null;
   private streamNode: MediaStreamAudioSourceNode | null = null;
@@ -113,6 +114,19 @@ export class AudioEngine extends EventTarget {
     }
     if (this.ctx.state === 'suspended') void this.ctx.resume();
     return this.ctx;
+  }
+
+  /**
+   * What the visualizer hears, as a stream for recording clips. Taken at the analyser (which every
+   * source feeds), so it ignores the volume slider and mute. Null until a source has been started.
+   */
+  recordingStream(): MediaStream | null {
+    if (!this.ctx || !this.analyser) return null;
+    if (!this.recordTap) {
+      this.recordTap = this.ctx.createMediaStreamDestination();
+      this.analyser.connect(this.recordTap);
+    }
+    return this.recordTap.stream;
   }
 
   private applyVolume() {

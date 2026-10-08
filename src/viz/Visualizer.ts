@@ -187,6 +187,8 @@ export class Visualizer extends EventTarget {
   readonly textures = new AudioTextures();
   /** Called every frame with fresh analysis, even when the canvas is hidden. */
   onFrame: ((frame: AudioFrame, dt: number) => void) | null = null;
+  /** Called right after each rendered frame, while the canvas still holds it (clip recording). */
+  onRender: ((canvas: HTMLCanvasElement) => void) | null = null;
 
   private readonly composer: EffectComposer;
   private readonly presetPass = new PresetPass();
@@ -510,6 +512,7 @@ export class Visualizer extends EventTarget {
     fu.uTintAmount.value = this.tintAmount;
 
     this.composer.render(dt);
+    this.onRender?.(this.canvas);
     this.adaptResolution(rawDt);
   };
 
